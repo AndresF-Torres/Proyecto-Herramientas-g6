@@ -1,0 +1,343 @@
+---
+title-block-style: plain
+format:
+  pdf:
+    documentclass: article
+    fontsize: 12pt
+    include-in-header:
+      text: |
+        \usepackage{pdfpages}
+    geometry:
+      - top=0.6in
+      - bottom=0.7in
+      - left=0.8in
+      - right=0.8in
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+\includepdf[pages=-]{AvanceUno}
+# Segundo avance
+
+Para este avance reunimos los datos más recientes encontrados para poder en el futuro poder analizar el país ideal para una persona bajo sus gustos, preferencias y posibilidades: 
+
+  -PM2.5: mide la concentración anual de particulas PM2.5 para evaluar la calidad del aire, medida en microgramos    por metro cubico.
+  
+  -Tasa de Homicidios: Homicidios intencionales por cada 100 mil habitantes.
+  
+  -PIB per capita: Mide la producción interna bruta sobre la cantidad de habitantes.
+  
+  -Desempleo: Proporción de la fuerza laboral que no tiene trabajo, pero se encuentra disponible y buscando empleo.
+  
+  -Esperanza de vida: esperanza de vida a la hora de nacer de distintos países alrededor del mundo.
+  
+  -Años de escolaridad: Datos de escolaridad en adultos de 25 años de edad en adelante.
+  
+  -Indice de costo de vida: comparación directa entre los precios de la ciudad de Nueva York y las de cada país.
+  
+  -Indice de alquiler: compara el precio del alquiler de la ciudad de Nueva York y las de cada país.
+
+```{r}
+library(dplyr)
+library(readxl)
+library(WDI)
+library(countrycode)
+
+
+df.base <- read.csv("iqair_pm25_2024.csv")
+
+df.final <- df.base |>
+  select(Pais, PM25)
+
+# Código ISO para poder unir bases que escriben los países de forma diferente
+df.final$Codigo <- countrycode(
+  df.final$Pais,
+  origin = "country.name",
+  destination = "iso3c",
+  custom_match = c(
+    "D.R. Congo" = "COD",
+    "Ivory Coast" = "CIV",
+    "Bosnia Herzegovina" = "BIH",
+    "Macao SAR" = "MAC",
+    "Taiwan" = "TWN",
+    "Hong Kong SAR" = "HKG",
+    "USA" = "USA",
+    "Russia" = "RUS",
+    "Bolivia" = "BOL",
+    "Moldova" = "MDA",
+    "South Korea" = "KOR",
+    "Laos" = "LAO",
+    "Palestine" = "PSE",
+    "Czech Republic" = "CZE",
+    "U.S. Virgin Islands" = "VIR"
+  )
+)
+
+
+#homicidios
+
+url.seguridad <- "https://ourworldindata.org/grapher/homicide-rate-unodc.csv?v=1&csvType=full&useColumnShortNames=false"
+
+df.seguridad <- read.csv(url.seguridad)
+
+
+df.seguridad <- df.seguridad[
+  !is.na(df.seguridad$Code) &
+  nchar(df.seguridad$Code) == 3 &
+  !is.na(df.seguridad[,4]),
+]
+
+# Dato más reciente disponible para cada país
+df.seguridad <- df.seguridad[
+  order(df.seguridad$Code, -df.seguridad$Year),
+]
+
+df.seguridad <- df.seguridad[
+  !duplicated(df.seguridad$Code),
+  c("Code", names(df.seguridad)[4])
+]
+
+colnames(df.seguridad) <- c("Codigo", "Tasa.homicidios")
+
+df.final <- left_join(df.final, df.seguridad, by = "Codigo")
+
+
+#PIB per capita
+
+
+df.pib <- WDI(
+  country = "all",
+  indicator = "NY.GDP.PCAP.CD",
+  start = 2020,
+  end = 2024
+)
+
+df.pib <- df.pib[!is.na(df.pib$NY.GDP.PCAP.CD),]
+df.pib <- df.pib[order(df.pib$iso3c, -df.pib$year),]
+df.pib <- df.pib[!duplicated(df.pib$iso3c), c("iso3c", "NY.GDP.PCAP.CD")]
+
+colnames(df.pib) <- c("Codigo", "PIB.per.capita")
+
+df.final <- left_join(df.final, df.pib, by = "Codigo")
+
+
+# desempleo
+
+
+df.desempleo <- WDI(
+  country = "all",
+  indicator = "SL.UEM.TOTL.ZS",
+  start = 2020,
+  end = 2024
+)
+
+df.desempleo <- df.desempleo[!is.na(df.desempleo$SL.UEM.TOTL.ZS),]
+df.desempleo <- df.desempleo[order(df.desempleo$iso3c, -df.desempleo$year),]
+df.desempleo <- df.desempleo[
+  !duplicated(df.desempleo$iso3c),
+  c("iso3c", "SL.UEM.TOTL.ZS")
+]
+
+colnames(df.desempleo) <- c("Codigo", "Desempleo")
+
+df.final <- left_join(df.final, df.desempleo, by = "Codigo")
+
+
+# esperanza de vida
+
+
+df.vida <- read.csv("e.de.vida.csv")
+
+df.vida <- df.vida[
+  !is.na(df.vida$X2024) &
+  df.vida$Country.Name != "",
+  c("Country.Code", "X2024")
+]
+
+colnames(df.vida) <- c("Codigo", "Esperanza.de.vida")
+
+df.final <- left_join(df.final, df.vida, by = "Codigo")
+
+
+# escolaridad
+
+df.escolaridad <- read.csv("escolaridad.csv")
+
+df.escolaridad <- df.escolaridad[
+  df.escolaridad$Year == 2023 &
+  df.escolaridad$Code != "",
+  c("Code", "Both.genders")
+]
+
+colnames(df.escolaridad) <- c("Codigo", "Anios.escolaridad")
+
+df.final <- left_join(df.final, df.escolaridad, by = "Codigo")
+
+
+# costo de vida y vivienda
+
+
+df.costos <- read_excel("Costo_de_vida_y_alquiler.xlsx")
+
+
+df.costos$Codigo <- countrycode(
+  df.costos$Pais,
+  origin = "country.name.es",
+  destination = "iso3c"
+)
+
+
+ajustes.costos <- c(
+  "Estados Unidos" = "USA",
+  "Corea del Sur" = "KOR",
+  "República Checa" = "CZE",
+  "Rusia" = "RUS",
+  "Bolivia" = "BOL",
+  "Moldavia" = "MDA",
+  "Costa de Marfil" = "CIV",
+  "Bosnia y Herzegovina" = "BIH",
+  "Hong Kong" = "HKG",
+  "Macao" = "MAC",
+  "Palestina" = "PSE"
+)
+
+for (nombre in names(ajustes.costos)) {
+  df.costos$Codigo[df.costos$Pais == nombre] <- ajustes.costos[[nombre]]
+}
+
+df.costos <- df.costos |>
+  select(
+    Codigo,
+    `Indice de Costo de Vida`,
+    `Indice de Alquiler`
+  )
+
+colnames(df.costos) <- c(
+  "Codigo",
+  "Indice.costo.vida",
+  "Indice.alquiler"
+)
+
+df.final <- left_join(df.final, df.costos, by = "Codigo")
+
+
+# tabla final
+
+df.final <- df.final |>
+  select(
+    Pais,
+    PM25,
+    Tasa.homicidios,
+    PIB.per.capita,
+    Desempleo,
+    Esperanza.de.vida,
+    Anios.escolaridad,
+    Indice.costo.vida,
+    Indice.alquiler
+  )
+```
+
+# Data frame final
+
+El data frame final conserva exclusivamente los países de la base ambiental utilizada para evaluar el PM2.5. Cuando alguno de estos no posee información para un indicador, el valor se mantiene como `NA`.
+Para que las tablas se pudieran apreciar correctamente lo que hicimos fue dividir en dos la tabla final de manera que la columna indicadora fuera la del país correspondiente al dato
+
+## Tabla 1. Medio ambiente, seguridad y economía
+
+```{r}
+tabla.1 <- df.final |>
+  select(
+    Pais,
+    PM25,
+    Tasa.homicidios,
+    PIB.per.capita,
+    Desempleo
+  )
+
+knitr::kable(
+  head(tabla.1, 5),
+  format = "latex",
+  booktabs = TRUE,
+  longtable = TRUE,
+  row.names = FALSE,
+  digits = 2,
+  caption = "Medio ambiente, seguridad y economía"
+)
+```
+
+## Tabla 2. Salud, educación y costos
+
+```{r}
+tabla.2 <- df.final |>
+  select(
+    Pais,
+    Esperanza.de.vida,
+    Anios.escolaridad,
+    Indice.costo.vida,
+    Indice.alquiler
+  )
+
+knitr::kable(
+  head(tabla.2, 5),
+  format = "latex",
+  booktabs = TRUE,
+  longtable = TRUE,
+  row.names = FALSE,
+  digits = 2,
+  caption = "Salud, educación y costos"
+)
+```
+
+Cantidad de filas y columnas:
+
+```{r}
+nrow(df.final)
+ncol(df.final)
+```
+
+Tipos de variables:
+
+```{r}
+str(df.final)
+```
+Note que todas las columnas, excluyendo la de país son de tipo numérica, ya que lo que buscamos es poder medir distintos parámetros de los países con el objetivo de ser más precisos a la hora de hacer una recomendación
+
+# Valores faltantes
+
+Cantidad de valores `NA` por variable:
+
+```{r}
+colSums(is.na(df.final))
+```
+
+Porcentaje de valores `NA` por variable:
+
+```{r}
+round(colMeans(is.na(df.final)) * 100, 2)
+```
+
+# Resumen descriptivo
+
+```{r}
+summary(df.final)
+```
+
+# **Referencias**
+
+IQAir. (2025). 2024 World Air Quality Report. IQAir.
+
+IQAir — 2024 World Air Quality Report
+
+Our World in Data. (2026). Homicide rate per 100,000 population [Conjunto de datos]. Datos de United Nations Office on Drugs and Crime (UNODC), con procesamiento de Our World in Data.
+
+World Bank. (s. f.). GDP per capita (current US$) [Conjunto de datos]. World Development Indicators. Indicador NY.GDP.PCAP.CD.
+
+World Bank. (s. f.). Unemployment, total (% of total labor force) (modeled ILO estimate) [Conjunto de datos]. World Development Indicators. Indicador SL.UEM.TOTL.ZS. Datos de International Labour Organization, ILOSTAT.
+
+
+World Bank. (s. f.). Life expectancy at birth, total (years) [Conjunto de datos]. World Development Indicators. Indicador SP.DYN.LE00.IN.
+
+United Nations Development Programme (UNDP). (2025). Human Development Report 2025 [Conjunto de datos], con procesamiento menor por Our World in Data.
+
+Numbeo. (2024). Cost of Living Index by Country 2024 [Conjunto de datos].
