@@ -14,7 +14,7 @@ calcular.ranking.topsis <- function(datos, pesos, direcciones){
   
   ranking.final <- datos %>%
     mutate(
-      Puntaje.TOPSIS = resultado$score,
+      Puntaje.TOPSIS = resultado.topsis$score,
       Ranking = rank(-Puntaje.TOPSIS, ties.method = "min")
     ) %>%
     arrange(Ranking) %>%
