@@ -1,0 +1,62 @@
+---
+title: "Avance3"
+format: pdf
+---
+
+# 1. Introducción
+
+La elección de un país para vivir implica considerar múltiples factores que influyen en las condiciones y oportunidades de sus habitantes. Aspectos como la seguridad, la salud, la educación, el entorno ambiental, la situación económica y el costo de vida pueden tener distinta importancia dependiendo de las necesidades y preferencias de cada persona. Por ello, determinar cuál es el mejor país para vivir no constituye una decisión universal, sino un problema en el que deben evaluarse simultáneamente diferentes criterios.
+
+Las comparaciones internacionales suelen presentar clasificaciones generales basadas en indicadores de desarrollo o calidad de vida. Sin embargo, estas clasificaciones no necesariamente reflejan las prioridades particulares de quienes las consultan. Por ejemplo, una persona puede estar dispuesta a asumir un mayor costo de vida a cambio de mejores condiciones de seguridad y salud, mientras que otra puede priorizar menores costos de vivienda y mayores oportunidades económicas. Esto evidencia la necesidad de contar con herramientas que permitan analizar los indicadores de manera conjunta y modificar su importancia relativa.
+
+El presente proyecto busca abordar este problema mediante el análisis de ocho indicadores: tasa de homicidios, contaminación del aire por partículas PM2.5, PIB per cápita, desempleo, esperanza de vida, años promedio de escolaridad, índice de costo de vida e índice de alquiler. Para ello, se integraron datos provenientes del Banco Mundial, Our World in Data, el Programa de las Naciones Unidas para el Desarrollo, IQAir y Numbeo, entre otras instituciones responsables de producir los indicadores originales.
+
+A partir de esta información, se realizará un análisis exploratorio para identificar patrones, relaciones y posibles limitaciones de los datos. Posteriormente, se aplicará una metodología de imputación para tratar los valores faltantes y el método multicriterio TOPSIS para generar clasificaciones bajo diferentes escenarios de ponderación. Esto permitirá estudiar cómo cambian las posiciones de los países cuando se modifican las preferencias individuales y establecer las bases para una futura aplicación interactiva desarrollada con Shiny.
+
+# 2. Objetivo general
+
+Analizar comparativamente las condiciones de vida de distintos países mediante ocho indicadores socioeconómicos, ambientales y de bienestar, aplicando técnicas de análisis exploratorio de datos, imputación de datos y el método TOPSIS para generar y comparar clasificaciones según diferentes preferencias y ponderaciones de los indicadores.
+
+# 3. Metodología
+
+## 3.1 Obtención y preparación de los datos
+
+Se utilizará la base de datos homogeneizada construida durante el segundo avance del proyecto, que integra ocho indicadores que provienen de distintas fuentes internacionales. Para garantizar un conjunto común de observaciones, se utilizó como referencia la lista de países y territorios de la base ambiental de IQAir correspondiente a 2024, excluyendo entidades adicionales presentes en las demás fuentes.
+
+Las bases fueron integradas mediante identificadores geográficos comunes, conservando los valores faltantes como NA cuando no existía información disponible. Se priorizaron observaciones de 2024 y, en aquellos indicadores con cobertura insuficiente, se utilizaron datos anteriores según su disponibilidad. Estas diferencias temporales se considerarán una limitación del análisis.
+
+## 3.2 Análisis exploratorio de datos
+
+Se realizará un análisis exploratorio de los ocho indicadores para examinar sus distribuciones, dispersión y posibles valores atípicos. Se utilizarán estadísticas descriptivas y visualizaciones, como histogramas, diagramas de caja y gráficos de dispersión, que permitan identificar diferencias entre países y relaciones relevantes entre variables.
+
+Adicionalmente, se analizarán correlaciones entre los indicadores para identificar asociaciones y posibles redundancias. Estos resultados servirán para interpretar las características de las variables y discutir cómo podrían influir en la construcción de una clasificación multicriterio. Las asociaciones encontradas se interpretarán sin atribuirles relaciones causales.
+
+## 3.3 Tratamiento de valores faltantes
+
+Para el tratamiento de valores faltantes se implementará la técnica de imputación mediante K vecinos más cercanos (K-Nearest Neighbors Imputation, KNN), utilizando cinco vecinos (K = 5). Este método permite estimar los valores faltantes a partir de observaciones con características similares, en lugar de utilizar una media general para todos los países.
+
+Para cada país e indicador faltante, se identificarán los cinco países estadísticamente más similares que dispongan de un valor observado para dicho indicador. La similitud se determinará utilizando los restantes indicadores disponibles en ambos países, previamente estandarizados mediante la función scale() de R, con el objetivo de evitar que las diferencias entre unidades de medida influyan desproporcionadamente en las comparaciones.
+
+Posteriormente, se calculará una distancia euclidiana ajustada por la cantidad de indicadores compartidos y se seleccionarán los cinco países con menor distancia. El valor faltante será sustituido por la media aritmética de los valores observados del indicador correspondiente en esos cinco vecinos.
+
+El procedimiento se implementará mediante una función propia en R, utilizando exclusivamente los valores originales como referencia para evitar que las imputaciones anteriores influyen en las posteriores. Cuando no existan cinco países comparables, el valor permanecerá como NA.
+
+Finalmente, se comparará la cantidad de valores faltantes antes y después de la imputación para evaluar su efectividad. Se reconocerá que los valores imputados son estimaciones y que su precisión depende de la similitud entre países y de la disponibilidad de información, lo cual representa una limitación para los resultados posteriores de TOPSIS.
+
+## 3.4. Aplicación del método TOPSIS
+
+Para generar las clasificaciones se utilizará el método TOPSIS (Technique for Order Preference by Similarity to Ideal Solution), implementado mediante la función topsis() de R. Este método permite ordenar alternativas según su cercanía a una solución ideal positiva y su distancia respecto de una solución ideal negativa.
+
+Los países constituirán las alternativas, mientras que los ocho indicadores representarán los criterios de evaluación. Se establecerá como deseable maximizar el PIB per cápita, la esperanza de vida y los años de escolaridad, y minimizar la tasa de homicidios, la contaminación PM2.5, el desempleo, el costo de vida y el alquiler.
+
+TOPSIS normaliza los indicadores, incorpora los pesos asignados y calcula una puntuación de cercanía relativa para cada país. Las puntuaciones mayores representan alternativas comparativamente más favorables bajo los criterios y ponderaciones utilizados.
+
+## 3.5. Escenarios de ponderación y sensibilidad
+
+Para evaluar la influencia de las preferencias individuales, se aplicará TOPSIS utilizando diferentes escenarios de ponderación.
+
+En primer lugar, se construirá un escenario equilibrado, en el que cada uno de los ocho indicadores tendrá un peso de 12,5%. Posteriormente, se definirán escenarios que otorguen mayor importancia a las condiciones económicas, al bienestar general y a los costos asociados con vivir en cada país.
+
+Se compararán las posiciones obtenidas en cada escenario para identificar países que mejoran o empeoran cuando se modifican las prioridades. Adicionalmente, se propone realizar un análisis de sensibilidad mediante diferentes combinaciones de pesos, con el fin de evaluar la estabilidad de las clasificaciones.
+
+Este procedimiento permitirá analizar hasta qué punto las recomendaciones dependen de las preferencias del usuario y servirá como fundamento para desarrollar posteriormente una aplicación interactiva en la que cada persona pueda establecer la importancia que desea asignar a los indicadores.
