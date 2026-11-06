@@ -4,7 +4,7 @@ format: pdf
 echo: FALSE
 ---
 
-```{r,message=FALSE}
+```{r,warning=FALSE}
 
 source("crea.df.completo.R")
 source("Imputar.KNN.R")
