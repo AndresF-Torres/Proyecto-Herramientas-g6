@@ -93,12 +93,21 @@ Este procedimiento permitirá analizar hasta qué punto las recomendaciones depe
 
 ## 4.1 Análisis exploratorio de datos
 
-Se procede a analizar las ocho variables por país con el fin de encontrar cómo están distribuidas. Por cada variable, se considera la cantidad de observaciones y de datos faltantes. A su vez, se analizan la media, mediana, y demás características descriptivas de cada variable, con el fin de determinar valores atípicos con base en la regla de Tukey. Finalmente, se analiza la correlación entre las variables y su interpretación, con el fin de determinar cuales variables siguen un comportamiento similar. Primero, vemos los tipos de los datos.
+Se procede a analizar las ocho variables por país con el fin de encontrar cómo están distribuidas. Por cada variable, se considera la cantidad de observaciones y de datos faltantes. A su vez, se analizan la media, mediana, y demás características descriptivas de cada variable, con el fin de determinar valores atípicos con base en la regla de Tukey. Finalmente, se analiza la correlación entre las variables y su interpretación, con el fin de determinar cuales variables siguen un comportamiento similar. Primero, vemos los tipos de los datos. Se muestran los tipos de cada variable por analizar
 
 ```{r}
 #| message: false
 #| warning: false
 
+library(dplyr)
+library(readxl)
+library(WDI)
+library(countrycode)
+library(ggplot2)
+library(tidyr)
+library(scales)
+library(knitr)
+library(kableExtra)
 
 variables <- c("PM25", "Tasa.homicidios", "PIB.per.capita", "Desempleo",
                "Esperanza.de.vida", "Anios.escolaridad", "Indice.costo.vida",
@@ -115,11 +124,14 @@ etiquetas <- c(
 )
 stopifnot(!anyDuplicated(df.final$Pais), all(variables %in% names(df.final)))
 
-str(df.final)
+df.tipos <- data.frame(Tipo = sapply(df.final, class))
+
+kable(df.tipos, align = 'c', caption = "Tipos de datos")
+
 ```
 
 Podemos notar que existen varias observaciones faltantes, por lo cual, para el desarrollo del proyecto, va a ser necesario imputar, o simplemente descartar ciertos datos dependiendo de que tanto efecto tengan en los resultados.
-A continuación se presentan las variables con su respectivo porcentaje de observaciones respecto al conjunto de países seleccionados.
+A continuación se presentan las variables con su respectivo porcentaje de observaciones respecto al conjunto de países seleccionados. Notamos que todos, antes de la imputación, quedan todos a más de 90%, por lo cual existe una alta precisión de los datos.
 
 ```{r}
 pct.obs <- tibble(
@@ -131,7 +143,7 @@ pct.obs <- tibble(
 kable(pct.obs, caption = "Estadísticas sobre observaciones por variable")
 ```
 
-A continuación, se presentan tamaño, media, desviación estándar, mínimo, cuartiles, mediana, y máximo de las observaciones en cada variable.
+A continuación, se presentan tamaño, media, desviación estándar, mínimo, cuartiles, mediana, y máximo de las observaciones en cada variable. Notamos que existen sesgos tanto a la izquierda como a la derecha, pues hay casos donde la mediana super al promedio, y otros donde no.
 
 ```{r}
 resumen <- df.final |>
@@ -150,10 +162,10 @@ resumen <- df.final |>
   ) |>
   mutate(Variable=unname(etiquetas[Variable])) |>
   mutate(across(where(is.numeric), ~round(.x,2)))
-kable(resumen, caption="Estadísticas descriptivas de las ocho variables")
+kable(resumen, table.attr = "style='width:20%;'" , caption="Estadísticas descriptivas de las ocho variables") |> kable_styling(font_size = 7)
 ```
 
-Luego, se presenta la distribución de los valores mediante un gráfico de boxplot, de manera que se sigue la regla de Tukey para determinar datos atípicos.
+Luego, se presenta la distribución de los valores mediante un gráfico de boxplot, de manera que se sigue la regla de Tukey para determinar datos atípicos. Es decir, aquellos datos fuera del rango intercuartil se consideran atípicos.
 
 ```{r}
 datos_largos <- df.final |>
