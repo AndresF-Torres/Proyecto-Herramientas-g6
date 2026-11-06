@@ -1,7 +1,17 @@
 ---
 title: "Avance3"
 format: pdf
+echo: FALSE
 ---
+
+```{r,message=FALSE}
+source("crea.df.completo.R")
+source("Imputar.KNN.R")
+df.final <- df.final[rowSums(is.na(df.final))<3,]
+df.imputada <- Imputar.KNN(df.final)
+```
+
+
 
 # 1. Introducción
 
