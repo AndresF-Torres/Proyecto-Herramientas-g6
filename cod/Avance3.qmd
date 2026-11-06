@@ -5,6 +5,7 @@ echo: FALSE
 ---
 
 ```{r,message=FALSE}
+
 source("crea.df.completo.R")
 source("Imputar.KNN.R")
 df.final <- df.final[rowSums(is.na(df.final))<3,]
@@ -70,3 +71,106 @@ En primer lugar, se construirá un escenario equilibrado, en el que cada uno de 
 Se compararán las posiciones obtenidas en cada escenario para identificar países que mejoran o empeoran cuando se modifican las prioridades. Adicionalmente, se propone realizar un análisis de sensibilidad mediante diferentes combinaciones de pesos, con el fin de evaluar la estabilidad de las clasificaciones.
 
 Este procedimiento permitirá analizar hasta qué punto las recomendaciones dependen de las preferencias del usuario y servirá como fundamento para desarrollar posteriormente una aplicación interactiva en la que cada persona pueda establecer la importancia que desea asignar a los indicadores.
+
+# Análisis exploratorio de datos
+
+Se procede a analizar las ocho variables por país con el fin de encontrar cómo están distribuidas. Por cada variable, se considera la cantidad de observaciones y de datos faltantes. A su vez, se analizan la media, mediana, y demás características descriptivas de cada variable, con el fin de determinar valores atípicos con base en la regla de Tukey. Finalmente, se analiza la correlación entre las variables y su interpretación, con el fin de determinar cuales variables siguen un comportamiento similar. Primero, vemos los tipos de los datos.
+
+```{r}
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(readxl)
+library(WDI)
+library(countrycode)
+library(ggplot2)
+library(tidyr)
+library(scales)
+library(knitr)
+
+variables <- c("PM25", "Tasa.homicidios", "PIB.per.capita", "Desempleo",
+               "Esperanza.de.vida", "Anios.escolaridad", "Indice.costo.vida",
+               "Indice.alquiler")
+etiquetas <- c(
+  PM25="PM2.5",
+  Tasa.homicidios="Homicidios por 100 mil habitantes",
+  PIB.per.capita="PIB per cápita (US$ corrientes)",
+  Desempleo="Desempleo (%)",
+  Esperanza.de.vida="Esperanza de vida (años)",
+  Anios.escolaridad="Escolaridad promedio (años)",
+  Indice.costo.vida="Índice de costo de vida",
+  Indice.alquiler="Índice de alquiler"
+)
+stopifnot(!anyDuplicated(df.final$Pais), all(variables %in% names(df.final)))
+
+str(df.final)
+```
+
+Podemos notar que existen varias observaciones faltantes, por lo cual, para el desarrollo del proyecto, va a ser necesario imputar, o simplemente descartar ciertos datos dependiendo de que tanto efecto tengan en los resultados.
+A continuación se presentan las variables con su respectivo porcentaje de observaciones respecto al conjunto de países seleccionados.
+
+```{r}
+pct.obs <- tibble(
+  Variable = unname(etiquetas[variables]),
+  Disponibles = sapply(df.final[variables], function(x) sum(!is.na(x))),
+  Faltantes = sapply(df.final[variables], function(x) sum(is.na(x)))
+) |>
+  mutate(`Pct.obs (%)`=round(100*Disponibles/nrow(df.final),1))
+kable(pct.obs, caption = "Estadísticas sobre observaciones por variable")
+```
+
+A continuación, se presentan tamaño, media, desviación estándar, mínimo, cuartiles, mediana, y máximo de las observaciones en cada variable.
+
+```{r}
+resumen <- df.final |>
+  pivot_longer(cols=all_of(variables), names_to="Variable", values_to="Valor") |>
+  group_by(Variable) |>
+  summarise(
+    N=sum(!is.na(Valor)),
+    Media=mean(Valor,na.rm=TRUE),
+    Desv.est=sd(Valor,na.rm=TRUE),
+    Minimo=min(Valor,na.rm=TRUE),
+    Q1=as.numeric(quantile(Valor,.25,na.rm=TRUE)),
+    Mediana= median(Valor,na.rm=TRUE),
+    Q3=as.numeric(quantile(Valor,.75,na.rm=TRUE)),
+    Maximo=max(Valor,na.rm=TRUE),
+    .groups="drop"
+  ) |>
+  mutate(Variable=unname(etiquetas[Variable])) |>
+  mutate(across(where(is.numeric), ~round(.x,2)))
+kable(resumen, caption="Estadísticas descriptivas de las ocho variables")
+```
+
+Luego, se presenta la distribución de los valores mediante un gráfico de boxplot, de manera que se sigue la regla de Tukey para determinar datos atípicos.
+
+```{r}
+datos_largos <- df.final |>
+  pivot_longer(cols=all_of(variables), names_to="Variable", values_to="Valor") |>
+  mutate(Variable=factor(unname(etiquetas[Variable]), levels=unname(etiquetas[variables])))
+```
+
+```{r fig.width=8, fig.height=4}
+ggplot(datos_largos, aes(x="", y=Valor)) +
+  geom_boxplot(fill="cyan", outlier.color="red", na.rm=TRUE) +
+  facet_wrap(~Variable, scales="free_y", ncol=3) +
+  labs(x=NULL, y=NULL) +
+  theme_minimal() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+```
+
+Finalmente, se calcula la correlación entre las distintas parejas posibles de variables. Se presentan varias correlaciones predecibles positivas, como con el PIB per cápita y la esperanza de vida, al igual que correlaciones negativas, como lo es el PM2.5 con el PIB per cápita. Es decir, atributos considerados positivos se relacionan con demás atributos positivos, mientras que se oponen a los negativos.
+
+```{r}
+pares <- expand.grid(Variable1=variables, Variable2=variables,
+                     stringsAsFactors=FALSE) |>
+  filter(match(Variable1,variables)<match(Variable2,variables)) |>
+  rowwise() |>
+  mutate(N=sum(complete.cases(df.final[,c(Variable1,Variable2)])),
+         Corr.=cor(df.final[[Variable1]],df.final[[Variable2]],
+                 method="spearman",use="complete.obs")) |>
+  ungroup() |>
+  mutate(Par=paste(unname(etiquetas[Variable1]),"/",unname(etiquetas[Variable2]))) |>
+  arrange(desc(abs(Corr.)))
+kable(head(select(pares,Par,N,Corr.),12),digits=3,
+      caption="Correlaciones más intensas (en valor absoluto)")
+```
