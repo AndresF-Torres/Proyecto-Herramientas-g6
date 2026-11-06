@@ -269,7 +269,8 @@ ggplot(df.final, aes(x = PIB.per.capita)) +
     labels = scales::label_number(big.mark = ".", decimal.mark = ",")
   ) +
   labs(x = "PIB per cápita (US$ corrientes)",
-       y = "Países y territorios", linetype = NULL) +
+       y = "Países y territorios", linetype = NULL,
+       caption= "Nota: Grafico generado por ChatGPT") +
   theme_minimal(base_size = 12) +
   theme(legend.position = "bottom")
 ```
@@ -375,7 +376,8 @@ ggplot(datos.pib.costos,
     labels = scales::label_number(big.mark = ".", decimal.mark = ",")
   ) +
   labs(x = "PIB per cápita (US$ corrientes)",
-       y = "Índice de costo de vida") +
+       y = "Índice de costo de vida",
+    caption= "Nota: Grafico generado por ChatGPT") +
   theme_minimal(base_size = 12)
 ```
 
@@ -431,19 +433,15 @@ ranking.equilibrado <- calcular.ranking.topsis(
 
 ```
 ```{r}
-
-#| label: tbl-ranking-equilibrado
 #| tbl-cap: "Diez países mejor clasificados con ponderaciones iguales"
 #| echo: false
-#| message: false
-#| warning: false
 
 ranking.equilibrado |>
   slice_head(n = 10) |>
   transmute(
     Posición = Ranking,
     País = Pais,
-    `Puntuación TOPSIS` = sprintf("%.4f", Puntaje.TOPSIS)
+    `Puntuación.TOPSIS` = sprintf("%.4f", Puntaje.TOPSIS)
   ) |>
   kable(
     format = "latex",
@@ -474,7 +472,7 @@ Por otro lado, se optó por analizar los resultados al considerar una mayor pond
 
 Los resultados muestran amplias diferencias entre las clasificaciones. Luxemburgo ocupa la primera posición en el escenario equilibrado, mientras que Islandia encabeza el escenario de bienestar, Bermudas el económico y Pakistán el de costos. Es decir, diferentes preferencias producen distintos resultados, por lo cual evaluar el caso equilibrado puede no reflejar la realidad lo que realmente busca una persona en un país.
 
-Además, algunos países presentan cambios significativos entre las evaluaciones. Bermudas pasa de la posición 101 en el escenario equilibrado a la primera en economía, pero baja hasta la 123 en costos, resultando en una variación máxima de 122 posiciones. Similarmente, Suiza ocupa la cuarta posición en economía y la séptima en bienestar, pero desciende hasta la 120 cuando se le da más importancia a los costos. También, Pakistán pasa de la posición 115 en el escenario equilibrado a la primera en costos.
+Además, algunos países presentan cambios significativos entre las evaluaciones, como se puede apreciar en la Figura 3: Bermudas pasa de la posición 101 en el escenario equilibrado a la primera en economía, pero baja hasta la 123 en costos, resultando en una variación máxima de 122 posiciones. Similarmente, Suiza ocupa la cuarta posición en economía y la séptima en bienestar, pero desciende hasta la 120 cuando se le da más importancia a los costos. También, Pakistán pasa de la posición 115 en el escenario equilibrado a la primera en costos.
 
 Esto quiere decir que no existe un país "perfecto" que maximice la satisfacción a cada componente. Es más, los países que maximizan cada variable proceden de distintas regiones del mundo, por lo cual se podría teorizar sobre una posible influencia de la región geográfica de un país con su desempeño en cierto aspecto evaluado. Se puede decir que existen compensaciones entre las condiciones económicas, el bienestar y los costos asociados con vivir en cada país, pues países que sobresalen en ciertas áreas dan pobres resultados en otras.
 
@@ -574,12 +572,9 @@ tabla.comparativa <- tabla.comparativa |>
 
 ```
 ```{r}
-
-#| label: tbl-comparacion-escenarios
 #| tbl-cap: "Posiciones de los diez primeros países bajo diferentes escenarios"
 #| echo: false
-#| message: false
-#| warning: false
+
 
 tabla.comparativa |>
   arrange(Equilibrado) |>
@@ -606,6 +601,12 @@ tabla.comparativa |>
 ```
 
 ```{r}
+#| fig-cap: "Cambios de la posición de seis países mediante TOPSIS según las preferencias"
+#| echo: false
+#| fig-width: 6.4
+#| fig-height: 3.1
+#| out-width: 100%
+#| fig-pos: H
 
 paises <- c(
   "Luxembourg", "Iceland", "Bermuda",
@@ -635,15 +636,42 @@ ggplot(datos.grafico,
   geom_point(size = 2.5) +
   scale_y_reverse() +
   labs(
-    title = "Cambios de posición según las preferencias",
-    subtitle = "Comparación de seis países mediante TOPSIS",
     x = "Escenario",
     y = "Posición en el ranking",
-    color = "País"
+    color = "País",
+    caption= "Nota: Grafico generado por ChatGPT"
   ) +
   theme_minimal()
 
 ```
 
+# Bibliografía 
+
+IQAir. (2025). 2024 World Air Quality Report. IQAir.
+
+IQAir — 2024 World Air Quality Report
+
+Numbeo. (2024). Cost of Living Index by Country 2024 [Conjunto de datos].
+
+Madanchian, M., & Taherdoost, H. (2023). A comprehensive guide to the TOPSIS method for multi-criteria decision making. Sustainable Social Development, 1(1), Article 2220. 
+
+OpenAI. (2026). ChatGPT (GPT-6) [Modelo de lenguaje grande].
+
+Our World in Data. (2026). Homicide rate per 100,000 population [Conjunto de datos]. Datos de United Nations Office on Drugs and Crime (UNODC), con procesamiento de Our World in Data.
+
+United Nations Development Programme (UNDP). (2025). Human Development Report 2025 [Conjunto de datos], con procesamiento menor por Our World in Data.
+
+World Bank. (s. f.). GDP per capita (current US$) [Conjunto de datos]. World Development Indicators. Indicador NY.GDP.PCAP.CD.
+
+World Bank. (s. f.). Unemployment, total (% of total labor force) (modeled ILO estimate) [Conjunto de datos]. World Development Indicators. Indicador SL.UEM.TOTL.ZS. Datos de International Labour Organization, ILOSTAT.
+
+
+World Bank. (s. f.). Life expectancy at birth, total (years) [Conjunto de datos]. World Development Indicators. Indicador SP.DYN.LE00.IN.
+
+
+
+# Anexos 
+
+Link del repositorio: https://github.com/AndresF-Torres/Proyecto-Herramientas-g6.git
 
 
