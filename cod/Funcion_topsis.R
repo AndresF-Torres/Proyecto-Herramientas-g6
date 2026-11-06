@@ -8,7 +8,7 @@ calcular.ranking.topsis <- function(datos, pesos, direcciones){
   matriz.decision <- as.matrix(datos[, variables.a.evaluar])
   
   vector.pesos <- as.numeric(pesos)
-  vector.direcciones <- as.character(direcciones)
+  vector.direcciones <- as.character(direcciones[, variables.a.evaluar])
   
   resultado.topsis <- topsis(matriz.decision, vector.pesos, vector.direcciones)
   
