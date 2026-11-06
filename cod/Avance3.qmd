@@ -4,8 +4,25 @@ format: pdf
 echo: FALSE
 ---
 
-```{r,warning=FALSE}
+```{r}
+#| message: false
+#| warning: false
 
+library(dplyr)
+library(readxl)
+library(WDI)
+library(countrycode)
+library(ggplot2)
+library(tidyr)
+library(scales)
+library(knitr)
+library(kableExtra)
+```
+
+
+```{r,warning=FALSE}
+#| message: false
+#| warning: false
 source("crea.df.completo.R")
 source("Imputar.KNN.R")
 df.final <- df.final[rowSums(is.na(df.final))<3,]
@@ -72,7 +89,9 @@ Se compararán las posiciones obtenidas en cada escenario para identificar país
 
 Este procedimiento permitirá analizar hasta qué punto las recomendaciones dependen de las preferencias del usuario y servirá como fundamento para desarrollar posteriormente una aplicación interactiva en la que cada persona pueda establecer la importancia que desea asignar a los indicadores.
 
-# Análisis exploratorio de datos
+#4. Resultados
+
+## 4.1 Análisis exploratorio de datos
 
 Se procede a analizar las ocho variables por país con el fin de encontrar cómo están distribuidas. Por cada variable, se considera la cantidad de observaciones y de datos faltantes. A su vez, se analizan la media, mediana, y demás características descriptivas de cada variable, con el fin de determinar valores atípicos con base en la regla de Tukey. Finalmente, se analiza la correlación entre las variables y su interpretación, con el fin de determinar cuales variables siguen un comportamiento similar. Primero, vemos los tipos de los datos.
 
@@ -80,14 +99,6 @@ Se procede a analizar las ocho variables por país con el fin de encontrar cómo
 #| message: false
 #| warning: false
 
-library(dplyr)
-library(readxl)
-library(WDI)
-library(countrycode)
-library(ggplot2)
-library(tidyr)
-library(scales)
-library(knitr)
 
 variables <- c("PM25", "Tasa.homicidios", "PIB.per.capita", "Desempleo",
                "Esperanza.de.vida", "Anios.escolaridad", "Indice.costo.vida",
@@ -174,3 +185,253 @@ pares <- expand.grid(Variable1=variables, Variable2=variables,
 kable(head(select(pares,Par,N,Corr.),12),digits=3,
       caption="Correlaciones más intensas (en valor absoluto)")
 ```
+
+## 4.2 Resultados de la Metodología
+
+### 4.1 Escenario TOPSIS con ponderaciones iguales 
+
+```{r}
+#| message: false
+#| warning: false
+
+source("Funcion_topsis.R")
+
+direcciones <- c(
+  PM.25 = "-",
+  Tasa.homicidios = "-",
+  PIB.per.capita = "+",
+  Desempleo = "-",
+  Esperanza.de.vida = "+",
+  Anios.escolaridad = "+",
+  Indice.costo.vida = "-",
+  Indice.alquiler = "-"
+)
+
+pesos.equilibrado <- c(
+  PM.25 = 0.125,
+  Tasa.homicidios = 0.125,
+  PIB.per.capita = 0.125,
+  Desempleo = 0.125,
+  Esperanza.de.vida = 0.125,
+  Anios.escolaridad = 0.125,
+  Indice.costo.vida = 0.125,
+  Indice.alquiler = 0.125
+)
+
+sum(pesos.equilibrado)
+
+names(df.imputada)[
+  names(df.imputada) == "PM25"
+] <- "PM.25"
+
+ranking.equilibrado <- calcular.ranking.topsis(
+  datos = df.imputada,
+  pesos = pesos.equilibrado,
+  direcciones = direcciones
+)
+
+```
+```{r}
+
+#| label: tbl-ranking-equilibrado
+#| tbl-cap: "Diez países mejor clasificados con ponderaciones iguales"
+#| echo: false
+#| message: false
+#| warning: false
+
+ranking.equilibrado |>
+  slice_head(n = 10) |>
+  transmute(
+    Posición = Ranking,
+    País = Pais,
+    `Puntuación TOPSIS` = sprintf("%.4f", Puntaje.TOPSIS)
+  ) |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("c", "l", "c"),
+    escape = TRUE
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    full_width = FALSE,
+    font_size = 10
+  ) |>
+  row_spec(1, bold = TRUE)
+
+```
+
+Como punto de referencia, se aplicó el método TOPSIS asignando un peso de 12,5% a cada uno de los ocho indicadores. Este escenario permite comparar los países sin establecer prioridades entre los criterios y constituye la base para evaluar posteriormente los cambios producidos por diferentes preferencias individuales.
+
+Los resultados muestran que Luxemburgo ocupa la primera posición, con una puntuación TOPSIS de 0,7878, seguido de Noruega (0,7829) e Irlanda (0,7695). Asimismo, destacan Macao, Dinamarca, Islandia, Países Bajos, Alemania, Bélgica y Austria, que completan las diez primeras posiciones.
+
+Se observa un predominio de países europeos entre las alternativas mejor clasificadas. No obstante, las puntuaciones de algunos países son muy similares. Por ejemplo, la diferencia entre Luxemburgo y Noruega es de aproximadamente 0,0048, mientras que Islandia y Países Bajos presentan puntuaciones prácticamente iguales. Esto evidencia que pequeñas diferencias en la puntuación pueden traducirse en cambios de posición.
+
+Es importante señalar que esta clasificación refleja el desempeño relativo de los países según los ocho indicadores seleccionados y sus ponderaciones, por lo que no representa una valoración absoluta de sus condiciones de vida. En los siguientes escenarios se analizará cómo cambia este orden al modificar la importancia asignada a cada indicador.
+
+### 4.2 Escenario TOPSIS diferentes ponderaciones
+```{r}
+# Direcciones de los indicadores
+
+direcciones <- c(
+  PM.25 = "-",
+  Tasa.homicidios = "-",
+  PIB.per.capita = "+",
+  Desempleo = "-",
+  Esperanza.de.vida = "+",
+  Anios.escolaridad = "+",
+  Indice.costo.vida = "-",
+  Indice.alquiler = "-"
+)
+
+# Bienestar
+
+peso.bienestar <- c(
+  PM.25 = 0.25,
+  Tasa.homicidios = 0.25,
+  Esperanza.de.vida = 0.25,
+  Anios.escolaridad = 0.25
+)
+
+# Economía
+
+peso.economia <- c(
+  PIB.per.capita = 0.5,
+  Desempleo = 0.5
+)
+
+#Costos
+
+peso.costos <- c(
+  Indice.costo.vida = 0.5,
+  Indice.alquiler = 0.5
+)
+
+# Calcular rankings
+
+caso.prioriza.bienestar <- calcular.ranking.topsis(
+  df.imputada,
+  peso.bienestar,
+  direcciones
+)
+
+caso.prioriza.economia <- calcular.ranking.topsis(
+  df.imputada,
+  peso.economia,
+  direcciones
+)
+
+caso.prioriza.costos <- calcular.ranking.topsis(
+  df.imputada,
+  peso.costos,
+  direcciones
+)
+
+# Mostrar los 10 primeros países de cada escenario
+
+```
+```{r}
+tabla.comparativa <- ranking.equilibrado |>
+  select(Pais, Equilibrado = Ranking) |>
+  left_join(
+    caso.prioriza.bienestar |>
+      select(Pais, Bienestar = Ranking),
+    by = "Pais"
+  ) |>
+  left_join(
+    caso.prioriza.economia |>
+      select(Pais, Economia = Ranking),
+    by = "Pais"
+  ) |>
+  left_join(
+    caso.prioriza.costos |>
+      select(Pais, Costos = Ranking),
+    by = "Pais"
+  )
+
+
+
+tabla.comparativa <- tabla.comparativa |>
+  mutate(
+    Variacion = pmax(
+      Equilibrado, Bienestar, Economia, Costos
+    ) -
+    pmin(
+      Equilibrado, Bienestar, Economia, Costos
+    )
+  )
+
+
+```
+```{r}
+
+#| label: tbl-comparacion-escenarios
+#| tbl-cap: "Posiciones de los diez primeros países bajo diferentes escenarios"
+#| echo: false
+#| message: false
+#| warning: false
+
+tabla.comparativa |>
+  arrange(Equilibrado) |>
+  slice_head(n = 10) |>
+  select(
+    Pais, Equilibrado, Bienestar,
+    Economia, Costos, Variacion
+  ) |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    col.names = c(
+      "País", "Equilibrado", "Bienestar",
+      "Economía", "Costos", "Variación"
+    ),
+    align = c("l", "c", "c", "c", "c", "c")
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    full_width = FALSE,
+    font_size = 9
+  )
+
+```
+
+```{r}
+
+paises <- c(
+  "Luxembourg", "Iceland", "Bermuda",
+  "Switzerland", "Pakistan", "Libya"
+)
+
+datos.grafico <- tabla.comparativa |>
+  filter(Pais %in% paises) |>
+  select(Pais, Equilibrado, Bienestar, Economia, Costos) |>
+  pivot_longer(
+    cols = -Pais,
+    names_to = "Escenario",
+    values_to = "Posicion"
+  ) |>
+  mutate(
+    Escenario = factor(
+      Escenario,
+      levels = c("Equilibrado", "Bienestar",
+                 "Economia", "Costos")
+    )
+  )
+
+ggplot(datos.grafico,
+       aes(x = Escenario, y = Posicion,
+           color = Pais, group = Pais)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2.5) +
+  scale_y_reverse() +
+  labs(
+    title = "Cambios de posición según las preferencias",
+    subtitle = "Comparación de seis países mediante TOPSIS",
+    x = "Escenario",
+    y = "Posición en el ranking",
+    color = "País"
+  ) +
+  theme_minimal()
+
+```
+
