@@ -12,11 +12,11 @@ source("limpiar_data/preparar.tasa.homicidios.R")
 
 
 # se guardar todas las tablas en una lista
-lista.tablas <- list(df.costos,
+lista.tablas <- list(df.pm25,
+                     df.costos,
                      df.desempleo,
                      df.escolaridad,
                      df.pib,
-                     df.pm25,
                      df.seguridad,
                      df.vida)
 
