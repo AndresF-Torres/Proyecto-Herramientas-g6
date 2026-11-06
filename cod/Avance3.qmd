@@ -20,15 +20,19 @@ library(kableExtra)
 ```
 
 
-```{r,warning=FALSE}
-#| message: false
+```{r}
+#| include: false
 #| warning: false
+#| message: false
+
 source("crea.df.completo.R")
 source("Imputar.KNN.R")
-df.final <- df.final[rowSums(is.na(df.final))<3,]
+df.original <- df.final
+df.final <- df.final[
+  rowSums(is.na(df.final)) < 3,
+]
 df.imputada <- Imputar.KNN(df.final)
 ```
-
 
 
 # 1. Introducción
@@ -89,118 +93,302 @@ Se compararán las posiciones obtenidas en cada escenario para identificar país
 
 Este procedimiento permitirá analizar hasta qué punto las recomendaciones dependen de las preferencias del usuario y servirá como fundamento para desarrollar posteriormente una aplicación interactiva en la que cada persona pueda establecer la importancia que desea asignar a los indicadores.
 
-#4. Resultados
-
+# 4. Resultados
 ## 4.1 Análisis exploratorio de datos
 
-Se procede a analizar las ocho variables por país con el fin de encontrar cómo están distribuidas. Por cada variable, se considera la cantidad de observaciones y de datos faltantes. A su vez, se analizan la media, mediana, y demás características descriptivas de cada variable, con el fin de determinar valores atípicos con base en la regla de Tukey. Finalmente, se analiza la correlación entre las variables y su interpretación, con el fin de determinar cuales variables siguen un comportamiento similar. Primero, vemos los tipos de los datos. Se muestran los tipos de cada variable por analizar
+El AED se realizó sobre los valores observados de los ocho indicadores, antes de imputar. Se examinaron la cobertura, las diferencias entre media y mediana, los valores extremos y las asociaciones entre indicadores. El propósito fue identificar limitaciones y compensaciones relevantes para la posterior clasificación de países y territorios mediante TOPSIS.
 
 ```{r}
-#| message: false
-#| warning: false
+#| include: false
 
-library(dplyr)
-library(readxl)
-library(WDI)
-library(countrycode)
-library(ggplot2)
-library(tidyr)
-library(scales)
-library(knitr)
-library(kableExtra)
-
-variables <- c("PM25", "Tasa.homicidios", "PIB.per.capita", "Desempleo",
-               "Esperanza.de.vida", "Anios.escolaridad", "Indice.costo.vida",
-               "Indice.alquiler")
-etiquetas <- c(
-  PM25="PM2.5",
-  Tasa.homicidios="Homicidios por 100 mil habitantes",
-  PIB.per.capita="PIB per cápita (US$ corrientes)",
-  Desempleo="Desempleo (%)",
-  Esperanza.de.vida="Esperanza de vida (años)",
-  Anios.escolaridad="Escolaridad promedio (años)",
-  Indice.costo.vida="Índice de costo de vida",
-  Indice.alquiler="Índice de alquiler"
+variables.aed <- c(
+  "PM25", "Tasa.homicidios", "PIB.per.capita", "Desempleo",
+  "Esperanza.de.vida", "Anios.escolaridad",
+  "Indice.costo.vida", "Indice.alquiler"
 )
-stopifnot(!anyDuplicated(df.final$Pais), all(variables %in% names(df.final)))
 
-df.tipos <- data.frame(Tipo = sapply(df.final, class))
+etiquetas.aed <- c(
+  PM25 = "PM2.5",
+  Tasa.homicidios = "Homicidios",
+  PIB.per.capita = "PIB per cápita",
+  Desempleo = "Desempleo",
+  Esperanza.de.vida = "Esperanza de vida",
+  Anios.escolaridad = "Escolaridad",
+  Indice.costo.vida = "Costo de vida",
+  Indice.alquiler = "Alquiler"
+)
 
-kable(df.tipos, align = 'c', caption = "Tipos de datos")
+stopifnot(
+  exists("df.original"),
+  all(variables.aed %in% names(df.final)),
+  !anyDuplicated(df.final$Pais),
+  all(vapply(df.final[variables.aed], is.numeric, logical(1)))
+)
 
-```
 
-Podemos notar que existen varias observaciones faltantes, por lo cual, para el desarrollo del proyecto, va a ser necesario imputar, o simplemente descartar ciertos datos dependiendo de que tanto efecto tengan en los resultados.
-A continuación se presentan las variables con su respectivo porcentaje de observaciones respecto al conjunto de países seleccionados. Notamos que todos, antes de la imputación, quedan todos a más de 90%, por lo cual existe una alta precisión de los datos.
+n.original <- nrow(df.original)
+n.aed <- nrow(df.final)
+n.excluidos <- n.original - n.aed
+na.por.pais <- rowSums(is.na(df.final[, variables.aed]))
+n.completos <- sum(na.por.pais == 0)
+n.incompletos <- sum(na.por.pais > 0)
 
-```{r}
-pct.obs <- tibble(
-  Variable = unname(etiquetas[variables]),
-  Disponibles = sapply(df.final[variables], function(x) sum(!is.na(x))),
-  Faltantes = sapply(df.final[variables], function(x) sum(is.na(x)))
-) |>
-  mutate(`Pct.obs (%)`=round(100*Disponibles/nrow(df.final),1))
-kable(pct.obs, caption = "Estadísticas sobre observaciones por variable")
-```
 
-A continuación, se presentan tamaño, media, desviación estándar, mínimo, cuartiles, mediana, y máximo de las observaciones en cada variable. Notamos que existen sesgos tanto a la izquierda como a la derecha, pues hay casos donde la mediana super al promedio, y otros donde no.
+datos.largos.aed <- df.final |>
+  select(Pais, all_of(variables.aed)) |>
+  pivot_longer(
+    cols = all_of(variables.aed),
+    names_to = "Variable",
+    values_to = "Valor"
+  )
 
-```{r}
-resumen <- df.final |>
-  pivot_longer(cols=all_of(variables), names_to="Variable", values_to="Valor") |>
+resumen.aed <- datos.largos.aed |>
   group_by(Variable) |>
   summarise(
-    N=sum(!is.na(Valor)),
-    Media=mean(Valor,na.rm=TRUE),
-    Desv.est=sd(Valor,na.rm=TRUE),
-    Minimo=min(Valor,na.rm=TRUE),
-    Q1=as.numeric(quantile(Valor,.25,na.rm=TRUE)),
-    Mediana= median(Valor,na.rm=TRUE),
-    Q3=as.numeric(quantile(Valor,.75,na.rm=TRUE)),
-    Maximo=max(Valor,na.rm=TRUE),
-    .groups="drop"
+    N = sum(!is.na(Valor)),
+    Faltantes = sum(is.na(Valor)),
+    Media = mean(Valor, na.rm = TRUE),
+    Mediana = median(Valor, na.rm = TRUE),
+    Q1 = as.numeric(quantile(Valor, 0.25, na.rm = TRUE)),
+    Q3 = as.numeric(quantile(Valor, 0.75, na.rm = TRUE)),
+    Minimo = min(Valor, na.rm = TRUE),
+    Maximo = max(Valor, na.rm = TRUE),
+    .groups = "drop"
   ) |>
-  mutate(Variable=unname(etiquetas[Variable])) |>
-  mutate(across(where(is.numeric), ~round(.x,2)))
-kable(resumen, table.attr = "style='width:20%;'" , caption="Estadísticas descriptivas de las ocho variables") |> kable_styling(font_size = 7)
+  mutate(Pct.NA = 100 * Faltantes / n.aed)
+
+
+resumen.aed <- resumen.aed[
+  match(variables.aed, resumen.aed$Variable),
+]
+
+pib.aed <- resumen.aed |>
+  filter(Variable == "PIB.per.capita")
+
+homicidios.aed <- resumen.aed |>
+  filter(Variable == "Tasa.homicidios")
+
+limite.pib <- pib.aed$Q3 + 1.5 * (pib.aed$Q3 - pib.aed$Q1)
+
+atipicos.pib <- df.final |>
+  filter(!is.na(PIB.per.capita), PIB.per.capita > limite.pib) |>
+  arrange(desc(PIB.per.capita))
+
+media.pib.sin.altos <- mean(
+  df.final$PIB.per.capita[df.final$PIB.per.capita <= limite.pib],
+  na.rm = TRUE
+)
+
+cambio.media.pib <- 100 * (
+  pib.aed$Media - media.pib.sin.altos
+) / pib.aed$Media
+
+if (nrow(atipicos.pib) > 0) {
+  texto.extremos <- paste0(
+    "El límite superior de Tukey es ",
+    formatC(limite.pib, format = "f", digits = 2,
+            big.mark = ".", decimal.mark = ","),
+    " US$. Lo superan ", nrow(atipicos.pib),
+    " países o territorios; entre los de mayor valor están ",
+    paste(head(atipicos.pib$Pais, 3), collapse = ", "),
+    ". Al omitir temporalmente esos valores solo para este diagnóstico, ",
+    "la media pasa a ",
+    formatC(media.pib.sin.altos, format = "f", digits = 2,
+            big.mark = ".", decimal.mark = ","),
+    " US$, una reducción de ",
+    formatC(cambio.media.pib, format = "f", digits = 1,
+            decimal.mark = ","),
+    "%. Esto cuantifica su influencia sobre el promedio."
+  )
+} else {
+  texto.extremos <- paste0(
+    "Ningún valor supera el límite superior de Tukey para el PIB. ",
+    "Este criterio no identifica extremos superiores en la base analizada."
+  )
+}
 ```
 
-Luego, se presenta la distribución de los valores mediante un gráfico de boxplot, de manera que se sigue la regla de Tukey para determinar datos atípicos. Es decir, aquellos datos fuera del rango intercuartil se consideran atípicos.
+### 4.1.1 Cobertura y alcance de la muestra
+
+La base integrada contiene `r n.original` países y territorios. El código del proyecto excluye los que presentan tres o más valores faltantes; con este criterio se retienen `r n.aed` y se excluyen `r n.excluidos`. Por tanto, los resultados siguientes describen el conjunto retenido, no la totalidad de la lista inicial.
+
+Entre las observaciones retenidas, `r n.completos` tienen los ocho indicadores completos y `r n.incompletos` presentan al menos un faltante. En conjunto quedan `r sum(resumen.aed$Faltantes)` celdas sin información. La Tabla 1 permite localizar esos faltantes. La cobertura elevada expresa disponibilidad, no precisión: no garantiza actualidad, comparabilidad temporal ni ausencia de errores. Además, está condicionada por la exclusión previa de los países con menor información.
+
+### 4.1.2 Distribuciones y efecto de los valores extremos
 
 ```{r}
-datos_largos <- df.final |>
-  pivot_longer(cols=all_of(variables), names_to="Variable", values_to="Valor") |>
-  mutate(Variable=factor(unname(etiquetas[Variable]), levels=unname(etiquetas[variables])))
+#| tbl-cap: "Cobertura y tendencia central antes de imputar."
+#| echo: false
+
+resumen.aed |>
+  transmute(
+    Indicador = unname(etiquetas.aed[Variable]),
+    N,
+    `NA (%)` = formatC(Pct.NA, format = "f", digits = 1,
+                       decimal.mark = ","),
+    Media = formatC(Media, format = "f", digits = 2,
+                    big.mark = ".", decimal.mark = ","),
+    Mediana = formatC(Mediana, format = "f", digits = 2,
+                      big.mark = ".", decimal.mark = ",")
+  ) |>
+  knitr::kable(
+    format = "latex", booktabs = TRUE,
+    row.names = FALSE, align = c("l", "r", "r", "r", "r")
+  ) |>
+  kableExtra::kable_styling(
+    latex_options = "hold_position",
+    full_width = FALSE, font_size = 12
+  )
 ```
 
-```{r fig.width=8, fig.height=4}
-ggplot(datos_largos, aes(x="", y=Valor)) +
-  geom_boxplot(fill="cyan", outlier.color="red", na.rm=TRUE) +
-  facet_wrap(~Variable, scales="free_y", ncol=3) +
-  labs(x=NULL, y=NULL) +
-  theme_minimal() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
-```
+**Unidades:** PM2.5 en microgramos por metro cúbico; homicidios por cada 100.000 habitantes; PIB per cápita en US$ corrientes; desempleo en porcentaje de la fuerza laboral; esperanza de vida y escolaridad en años; costo de vida y alquiler en puntos de índice. Las medias se calculan entre las entidades disponibles, sin ponderar por población.
 
-Finalmente, se calcula la correlación entre las distintas parejas posibles de variables. Se presentan varias correlaciones predecibles positivas, como con el PIB per cápita y la esperanza de vida, al igual que correlaciones negativas, como lo es el PM2.5 con el PIB per cápita. Es decir, atributos considerados positivos se relacionan con demás atributos positivos, mientras que se oponen a los negativos.
+El PIB per cápita tiene una media de 26.714,82 y una mediana de 13.988,04: el promedio equivale a `r formatC(pib.aed$Media / pib.aed$Mediana, format = "f", digits = 2, decimal.mark = ",")` veces la mediana. En la Figura 1 se observa la concentración de observaciones y la prolongación hacia valores elevados. Esta separación explica por qué la media, por sí sola, no describe la situación de la mayoría de los países; se acompaña de la mediana para interpretar el valor central sin confundirlo con el ingreso de una persona.
 
 ```{r}
-pares <- expand.grid(Variable1=variables, Variable2=variables,
-                     stringsAsFactors=FALSE) |>
-  filter(match(Variable1,variables)<match(Variable2,variables)) |>
+#| fig-cap: "Distribución del PIB per cápita observado, con media y mediana."
+#| echo: false
+#| fig-width: 6.4
+#| fig-height: 3.1
+#| out-width: 100%
+#| fig-pos: H
+
+lineas.pib <- data.frame(
+  Estadistico = c("Media", "Mediana"),
+  Valor = c(pib.aed$Media, pib.aed$Mediana)
+)
+
+ggplot(df.final, aes(x = PIB.per.capita)) +
+  geom_histogram(bins = 18, na.rm = TRUE) +
+  geom_vline(
+    data = lineas.pib,
+    aes(xintercept = Valor, linetype = Estadistico),
+    linewidth = 0.8
+  ) +
+  scale_x_continuous(
+    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+  ) +
+  labs(x = "PIB per cápita (US$ corrientes)",
+       y = "Países y territorios", linetype = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
+```
+
+Para identificar posibles valores atípicos se utilizan las cercas de Tukey. Se consideran potencialmente atípicos los valores inferiores al primer cuartil menos 1,5 veces el rango intercuartílico o superiores al tercer cuartil más 1,5 veces dicho rango. El rango intercuartílico corresponde a la diferencia entre el tercer y el primer cuartil; por tanto, no basta con estar fuera del intervalo entre los cuartiles para considerar una observación atípica. En el PIB per cápita, el límite superior es de 90.302,85 dólares estadounidenses. Seis países o territorios superan este valor, entre ellos Bermudas, Luxemburgo e Irlanda. Al omitir temporalmente estas seis observaciones, la media disminuye un 17,3%, lo que evidencia su influencia sobre el promedio. Este cálculo se realiza únicamente como diagnóstico: los valores señalados no se eliminan de la base ni se modifican los rankings, y tampoco se consideran errores únicamente por su magnitud.
+
+En homicidios, la media es `r formatC(homicidios.aed$Media, format = "f", digits = 2, decimal.mark = ",")` y la mediana `r formatC(homicidios.aed$Mediana, format = "f", digits = 2, decimal.mark = ",")` por cada 100.000 habitantes. Su máximo observado llega a `r formatC(homicidios.aed$Maximo, format = "f", digits = 2, decimal.mark = ",")`. La diferencia entre las medidas de centro aconseja no representar la seguridad de todos los países mediante un único promedio. En TOPSIS, los extremos intervienen en los perfiles ideal y antiideal; por ello, se mantienen como información relevante, pero no se presupone que normalizar elimine su influencia.
+
+### 4.1.3 Asociaciones y compensaciones entre indicadores
+
+```{r}
+#| include: false
+
+pares.aed <- expand.grid(
+  Variable1 = variables.aed,
+  Variable2 = variables.aed,
+  stringsAsFactors = FALSE
+) |>
+  filter(
+    match(Variable1, variables.aed) < match(Variable2, variables.aed)
+  ) |>
   rowwise() |>
-  mutate(N=sum(complete.cases(df.final[,c(Variable1,Variable2)])),
-         Corr.=cor(df.final[[Variable1]],df.final[[Variable2]],
-                 method="spearman",use="complete.obs")) |>
-  ungroup() |>
-  mutate(Par=paste(unname(etiquetas[Variable1]),"/",unname(etiquetas[Variable2]))) |>
-  arrange(desc(abs(Corr.)))
-kable(head(select(pares,Par,N,Corr.),12),digits=3,
-      caption="Correlaciones más intensas (en valor absoluto)")
+  mutate(
+    N = sum(complete.cases(df.final[, c(Variable1, Variable2)])),
+    Corr = if (N >= 3) {
+      suppressWarnings(cor(
+        df.final[[Variable1]], df.final[[Variable2]],
+        method = "spearman", use = "complete.obs"
+      ))
+    } else {
+      NA_real_
+    }
+  ) |>
+  ungroup()
+
+correlaciones.aed <- pares.aed |>
+  filter(
+    (Variable1 == "PIB.per.capita" &
+       Variable2 %in% c("Esperanza.de.vida", "Indice.costo.vida")) |
+    (Variable1 == "Indice.costo.vida" & Variable2 == "Indice.alquiler")
+  ) |>
+  mutate(
+    Relacion = case_when(
+      Variable2 == "Esperanza.de.vida" ~ "PIB / esperanza de vida",
+      Variable2 == "Indice.costo.vida" ~ "PIB / costo de vida",
+      TRUE ~ "Costo de vida / alquiler"
+    )
+  )
+
+rho.pib.vida <- correlaciones.aed$Corr[
+  correlaciones.aed$Variable2 == "Esperanza.de.vida"
+]
+rho.pib.costos <- correlaciones.aed$Corr[
+  correlaciones.aed$Variable2 == "Indice.costo.vida"
+]
+rho.costos.alquiler <- correlaciones.aed$Corr[
+  correlaciones.aed$Variable2 == "Indice.alquiler"
+]
 ```
+
+La Tabla 2 presenta tres relaciones vinculadas con el objetivo del proyecto. Spearman compara el orden de los valores; cada coeficiente se calcula únicamente con los países que poseen ambos indicadores. Por eso se informa el número de pares disponibles y no se supone que todas las correlaciones provengan de la misma muestra.
+
+```{r}
+#| tbl-cap: "Asociaciones de Spearman seleccionadas."
+#| echo: false
+
+correlaciones.aed |>
+  transmute(
+    Relacion,
+    N,
+    Spearman = formatC(Corr, format = "f", digits = 3,
+                       decimal.mark = ",")
+  ) |>
+  knitr::kable(
+    format = "latex", booktabs = TRUE, row.names = FALSE,
+    col.names = c("Relación", "N", "Spearman"),
+    align = c("l", "r", "r")
+  ) |>
+  kableExtra::kable_styling(
+    latex_options = "hold_position", full_width = FALSE, font_size = 12
+  )
+```
+
+El PIB per cápita y la esperanza de vida presentan una correlación de `r formatC(rho.pib.vida, format = "f", digits = 3, decimal.mark = ",")`. En la base enviada, esta asociación positiva indica que los países con mayor PIB tienden a ocupar posiciones más altas en esperanza de vida. No demuestra que el PIB cause por sí solo una mayor longevidad. Para el índice, importa porque dos dimensiones distintas pueden aportar información parcialmente relacionada; sus ponderaciones deben interpretarse conjuntamente.
+
+La asociación entre PIB y costo de vida es de `r formatC(rho.pib.costos, format = "f", digits = 3, decimal.mark = ",")` y se visualiza en la Figura 1. En los resultados del grupo, los países con mayor PIB tienden a presentar mayores índices de costo de vida. Esto muestra una compensación relevante: priorizar un mayor PIB y priorizar menores costos puede favorecer alternativas diferentes. No equivale a medir asequibilidad, porque no se dispone del salario ni del presupuesto particular de cada usuario.
+
+```{r}
+#| fig-cap: "PIB per cápita e índice de costo de vida."
+#| echo: false
+#| fig-width: 6.4
+#| fig-height: 3.1
+#| out-width: 100%
+#| fig-pos: H
+
+datos.pib.costos <- df.final |>
+  filter(!is.na(PIB.per.capita), !is.na(Indice.costo.vida))
+
+ggplot(datos.pib.costos,
+       aes(x = PIB.per.capita, y = Indice.costo.vida)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_x_continuous(
+    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+  ) +
+  labs(x = "PIB per cápita (US$ corrientes)",
+       y = "Índice de costo de vida") +
+  theme_minimal(base_size = 12)
+```
+
+Finalmente, costo de vida y alquiler presentan una correlación de `r formatC(rho.costos.alquiler, format = "f", digits = 3, decimal.mark = ",")`. En la base analizada, sus patrones son similares, aunque no son conceptos idénticos. Con pesos iguales, ambos criterios reciben conjuntamente el 25% del peso nominal del modelo. Esta asociación no obliga a eliminar uno, pero sí a reconocer que la dimensión de costos está representada por dos criterios relacionados.
+
+### 4.1.4 Implicaciones para la metodología
+
+El AED identifica tres precauciones para interpretar los rankings: la muestra está condicionada por la disponibilidad de información, los extremos influyen en las medidas de centro y varios criterios se encuentran relacionados. La estandarización utilizada en KNN permite comparar unidades distintas, pero las imputaciones siguen siendo estimaciones. Asimismo, los datos corresponden a distintos años según el indicador; las asociaciones no representan una fotografía estricta de 2024. Estos límites justifican interpretar TOPSIS como una comparación relativa bajo criterios y preferencias explícitos, no como una recomendación universal.
+
 
 ## 4.2 Resultados de la Metodología
 
-### 4.1 Escenario TOPSIS con ponderaciones iguales 
+### 4.2.1 Escenario TOPSIS con ponderaciones iguales 
 
 ```{r}
 #| message: false
@@ -230,7 +418,6 @@ pesos.equilibrado <- c(
   Indice.alquiler = 0.125
 )
 
-sum(pesos.equilibrado)
 
 names(df.imputada)[
   names(df.imputada) == "PM25"
@@ -281,7 +468,7 @@ Se observa un predominio de países europeos entre las alternativas mejor clasif
 
 Es importante señalar que esta clasificación refleja el desempeño relativo de los países según los ocho indicadores seleccionados y sus ponderaciones, por lo que no representa una valoración absoluta de sus condiciones de vida. En los siguientes escenarios se analizará cómo cambia este orden al modificar la importancia asignada a cada indicador.
 
-### 4.2 Escenario TOPSIS diferentes ponderaciones
+### 4.2.2 Escenario TOPSIS diferentes ponderaciones
 
 Por otro lado, se optó por analizar los resultados al considerar una mayor ponderación para ciertas variables. Esto se da con el objetivo de simular como las personas suelen priorizar ciertos aspectos al tomar decisiones. Se realizó esta evaluación con los aspectos de: bienestar, economía y costos, y cada resultado fue comparado con los demás y con la evaluación equilibrada.
 
