@@ -1,5 +1,5 @@
 ---
-title: "Avance3"
+title: "Avance 3"
 format: pdf
 echo: FALSE
 ---
@@ -282,6 +282,17 @@ Se observa un predominio de países europeos entre las alternativas mejor clasif
 Es importante señalar que esta clasificación refleja el desempeño relativo de los países según los ocho indicadores seleccionados y sus ponderaciones, por lo que no representa una valoración absoluta de sus condiciones de vida. En los siguientes escenarios se analizará cómo cambia este orden al modificar la importancia asignada a cada indicador.
 
 ### 4.2 Escenario TOPSIS diferentes ponderaciones
+
+Por otro lado, se optó por analizar los resultados al considerar una mayor ponderación para ciertas variables. Esto se da con el objetivo de simular como las personas suelen priorizar ciertos aspectos al tomar decisiones. Se realizó esta evaluación con los aspectos de: bienestar, economía y costos, y cada resultado fue comparado con los demás y con la evaluación equilibrada.
+
+Los resultados muestran amplias diferencias entre las clasificaciones. Luxemburgo ocupa la primera posición en el escenario equilibrado, mientras que Islandia encabeza el escenario de bienestar, Bermudas el económico y Pakistán el de costos. Es decir, diferentes preferencias producen distintos resultados, por lo cual evaluar el caso equilibrado puede no reflejar la realidad lo que realmente busca una persona en un país.
+
+Además, algunos países presentan cambios significativos entre las evaluaciones. Bermudas pasa de la posición 101 en el escenario equilibrado a la primera en economía, pero baja hasta la 123 en costos, resultando en una variación máxima de 122 posiciones. Similarmente, Suiza ocupa la cuarta posición en economía y la séptima en bienestar, pero desciende hasta la 120 cuando se le da más importancia a los costos. También, Pakistán pasa de la posición 115 en el escenario equilibrado a la primera en costos.
+
+Esto quiere decir que no existe un país "perfecto" que maximice la satisfacción a cada componente. Es más, los países que maximizan cada variable proceden de distintas regiones del mundo, por lo cual se podría teorizar sobre una posible influencia de la región geográfica de un país con su desempeño en cierto aspecto evaluado. Se puede decir que existen compensaciones entre las condiciones económicas, el bienestar y los costos asociados con vivir en cada país, pues países que sobresalen en ciertas áreas dan pobres resultados en otras.
+
+En conclusión, los resultados respaldan la utilidad del proyecto. Se evidencia que, en lugar de recomendar un mismo país a todos los usuarios, la metodología permite adaptar el orden de las alternativas a los criterios que cada persona considere más importantes.
+
 ```{r}
 # Direcciones de los indicadores
 
@@ -446,4 +457,6 @@ ggplot(datos.grafico,
   theme_minimal()
 
 ```
+
+
 
