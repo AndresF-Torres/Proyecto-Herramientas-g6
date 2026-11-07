@@ -35,7 +35,7 @@ df.final <- df.final[
 df.imputada <- Imputar.KNN(df.final)
 ```
 
-:\begin{center}
+\begin{center}
 
 UNIVERSIDAD DE COSTA RICA
 
