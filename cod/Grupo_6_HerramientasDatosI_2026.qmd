@@ -1,7 +1,9 @@
 ---
-title: "Avance 3"
-format: pdf
-echo: FALSE
+lang: es
+format:
+  pdf:
+    fontsize: 12pt
+    echo: FALSE
 ---
 
 ```{r}
@@ -19,7 +21,6 @@ library(knitr)
 library(kableExtra)
 ```
 
-
 ```{r}
 #| include: false
 #| warning: false
@@ -34,6 +35,35 @@ df.final <- df.final[
 df.imputada <- Imputar.KNN(df.final)
 ```
 
+:\begin{center}
+
+UNIVERSIDAD DE COSTA RICA
+
+FACULTAD DE CIENCIAS
+
+ESCUELA DE MATEMÁTICAS
+
+DEPARTAMENTO DE CIENCIAS ACTUARIALES
+
+Curso:
+
+Herramientas de ciencias de datos I
+
+Avance 3
+
+Estudiantes:
+
+Sebastián Aguilar Pineda - C5C149
+
+Santiago Jara Vargas - C5G155
+
+Luis Alfredo Odio Sanabria - C5H973
+
+Priscilla Ramírez Ramírez - C4I820
+
+Andrés Francisco Torres Moraga - C5k247
+
+\end{center}
 
 # 1. Introducción
 
@@ -53,47 +83,58 @@ Analizar comparativamente las condiciones de vida de distintos países mediante 
 
 ## 3.1 Obtención y preparación de los datos
 
-Se utilizará la base de datos homogeneizada construida durante el segundo avance del proyecto, que integra ocho indicadores que provienen de distintas fuentes internacionales. Para garantizar un conjunto común de observaciones, se utilizó como referencia la lista de países y territorios de la base ambiental de IQAir correspondiente a 2024, excluyendo entidades adicionales presentes en las demás fuentes.
+Se utilizó la base de datos homogeneizada construida durante el segundo avance del proyecto, que integra ocho indicadores que provienen de distintas fuentes internacionales. Para garantizar un conjunto común de observaciones, se usó como referencia la lista de países y territorios de la base ambiental de IQAir correspondiente a 2024, excluyendo entidades adicionales presentes en las demás fuentes.
 
-Las bases fueron integradas mediante identificadores geográficos comunes, conservando los valores faltantes como NA cuando no existía información disponible. Se priorizaron observaciones de 2024 y, en aquellos indicadores con cobertura insuficiente, se utilizaron datos anteriores según su disponibilidad. Estas diferencias temporales se considerarán una limitación del análisis.
+Las bases fueron integradas mediante identificadores geográficos comunes, conservando los valores faltantes como NA cuando no existía información disponible. Se priorizaron observaciones de 2024 y, en aquellos indicadores con cobertura insuficiente, se utilizaron datos anteriores según su disponibilidad. Estas diferencias temporales se consideran una limitación del análisis.
 
 ## 3.2 Análisis exploratorio de datos
 
-Se realizará un análisis exploratorio de los ocho indicadores para examinar sus distribuciones, dispersión y posibles valores atípicos. Se utilizarán estadísticas descriptivas y visualizaciones, como histogramas, diagramas de caja y gráficos de dispersión, que permitan identificar diferencias entre países y relaciones relevantes entre variables.
+Se realizó un análisis exploratorio de los ocho indicadores para examinar sus distribuciones, dispersión y posibles valores atípicos. Se utilizó estadísticas descriptivas y visualizaciones, como histogramas, diagramas de caja y gráficos de dispersión, que permitieron identificar diferencias entre países y relaciones relevantes entre variables.
 
-Adicionalmente, se analizarán correlaciones entre los indicadores para identificar asociaciones y posibles redundancias. Estos resultados servirán para interpretar las características de las variables y discutir cómo podrían influir en la construcción de una clasificación multicriterio. Las asociaciones encontradas se interpretarán sin atribuirles relaciones causales.
+Adicionalmente, se analizaron correlaciones entre los indicadores para identificar asociaciones y posibles redundancias. Estos resultados facilitaron la interpretación de las características de las variables y su discusión en cómo podrían influir en la construcción de una clasificación multicriterio. Las asociaciones encontradas se interpretarán sin atribuirles relaciones causales.
 
 ## 3.3 Tratamiento de valores faltantes
 
-Para el tratamiento de valores faltantes se implementará la técnica de imputación mediante K vecinos más cercanos (K-Nearest Neighbors Imputation, KNN), utilizando cinco vecinos (K = 5). Este método permite estimar los valores faltantes a partir de observaciones con características similares, en lugar de utilizar una media general para todos los países.
+Se omitieron los países que hayan presentados 3 o más NA, esto pues ya que se considero que tienen muy poca información para ser imputados. Para el tratamiento de valores faltantes en los países no filtrados anteriormente, se implementó la técnica de imputación mediante K vecinos más cercanos (K-Nearest Neighbors Imputation, KNN), utilizando cinco vecinos (K = 5). Este método permite estimar los valores faltantes a partir de observaciones con características similares, en lugar de utilizar una media general para todos los países.
 
-Para cada país e indicador faltante, se identificarán los cinco países estadísticamente más similares que dispongan de un valor observado para dicho indicador. La similitud se determinará utilizando los restantes indicadores disponibles en ambos países, previamente estandarizados mediante la función scale() de R, con el objetivo de evitar que las diferencias entre unidades de medida influyan desproporcionadamente en las comparaciones.
+Para cada país e indicador faltante, se identificaron los cinco países estadísticamente más similares que disponían de un valor observado para dicho indicador. La similitud se determinará utilizando los restantes indicadores disponibles en ambos países, previamente estandarizados mediante la función scale() de R, con el objetivo de evitar que las diferencias entre unidades de medida influyan desproporcionadamente en las comparaciones.
 
-Posteriormente, se calculará una distancia euclidiana ajustada por la cantidad de indicadores compartidos y se seleccionarán los cinco países con menor distancia. El valor faltante será sustituido por la media aritmética de los valores observados del indicador correspondiente en esos cinco vecinos.
+Del mismo, se calculó una distancia euclidiana ajustada por la cantidad de indicadores compartidos y se seleccionaron los cinco países con menor distancia. El valor faltante fue sustituido por la media aritmética de los valores observados del indicador correspondiente en esos cinco vecinos.
 
-El procedimiento se implementará mediante una función propia en R, utilizando exclusivamente los valores originales como referencia para evitar que las imputaciones anteriores influyen en las posteriores. Cuando no existan cinco países comparables, el valor permanecerá como NA.
+El procedimiento se implementó mediante una función propia en R, utilizando exclusivamente los valores originales como referencia para evitar que las imputaciones anteriores influyen en las posteriores. Cuando no existan cinco países comparables, el valor permanecerá como NA.
 
-Finalmente, se comparará la cantidad de valores faltantes antes y después de la imputación para evaluar su efectividad. Se reconocerá que los valores imputados son estimaciones y que su precisión depende de la similitud entre países y de la disponibilidad de información, lo cual representa una limitación para los resultados posteriores de TOPSIS.
+Finalmente, se comparó la cantidad de valores faltantes antes y después de la imputación para evaluar su efectividad. Se reconoce que los valores imputados son estimaciones y que su precisión depende de la similitud entre países y de la disponibilidad de información, lo cual representa una limitación para los resultados posteriores de TOPSIS.
+
 
 ## 3.4. Aplicación del método TOPSIS
 
-Para generar las clasificaciones se utilizará el método TOPSIS (Technique for Order Preference by Similarity to Ideal Solution), implementado mediante la función topsis() de R. Este método permite ordenar alternativas según su cercanía a una solución ideal positiva y su distancia respecto de una solución ideal negativa.
+Para generar las clasificaciones se utilizó el método TOPSIS (Technique for Order Preference by Similarity to Ideal Solution), implementado mediante la función topsis() de R. Este método permite ordenar alternativas según su cercanía a una solución ideal positiva y su distancia respecto de una solución ideal negativa.
 
-Los países constituirán las alternativas, mientras que los ocho indicadores representarán los criterios de evaluación. Se establecerá como deseable maximizar el PIB per cápita, la esperanza de vida y los años de escolaridad, y minimizar la tasa de homicidios, la contaminación PM2.5, el desempleo, el costo de vida y el alquiler.
+Los países constituyen las alternativas, mientras que los ocho indicadores representaron los criterios de evaluación. Se estableció como deseable maximizar el PIB per cápita, la esperanza de vida y los años de escolaridad, y minimizar la tasa de homicidios, la contaminación PM2.5, el desempleo, el costo de vida y el alquiler.
 
-TOPSIS normaliza los indicadores, incorpora los pesos asignados y calcula una puntuación de cercanía relativa para cada país. Las puntuaciones mayores representan alternativas comparativamente más favorables bajo los criterios y ponderaciones utilizados.
+TOPSIS normalizó los indicadores, incorpora los pesos asignados y calcula una puntuación de cercanía relativa para cada país. Las puntuaciones mayores representan alternativas comparativamente más favorables bajo los criterios y ponderaciones utilizados.
 
 ## 3.5. Escenarios de ponderación y sensibilidad
 
-Para evaluar la influencia de las preferencias individuales, se aplicará TOPSIS utilizando diferentes escenarios de ponderación.
+Para evaluar la influencia de las preferencias individuales, se aplicó TOPSIS utilizando diferentes escenarios de ponderación.
 
-En primer lugar, se construirá un escenario equilibrado, en el que cada uno de los ocho indicadores tendrá un peso de 12,5%. Posteriormente, se definirán escenarios que otorguen mayor importancia a las condiciones económicas, al bienestar general y a los costos asociados con vivir en cada país.
+En primer escenario, se construyó un escenario equilibrado, en el que cada uno de los ocho indicadores tendrá un peso de 12,5%. Posteriormente, se definieron escenarios que otorguen mayor importancia a las condiciones económicas, al bienestar general y a los costos asociados con vivir en cada país.
 
-Se compararán las posiciones obtenidas en cada escenario para identificar países que mejoran o empeoran cuando se modifican las prioridades. Adicionalmente, se propone realizar un análisis de sensibilidad mediante diferentes combinaciones de pesos, con el fin de evaluar la estabilidad de las clasificaciones.
+Se compararon las posiciones obtenidas en cada escenario para identificar países que mejoran o empeoran cuando se modifican las prioridades. Adicionalmente, se realizó un análisis de sensibilidad mediante diferentes combinaciones de pesos, con el fin de evaluar la estabilidad de las clasificaciones.
 
-Este procedimiento permitirá analizar hasta qué punto las recomendaciones dependen de las preferencias del usuario y servirá como fundamento para desarrollar posteriormente una aplicación interactiva en la que cada persona pueda establecer la importancia que desea asignar a los indicadores.
+Este procedimiento permitió analizar hasta qué punto las recomendaciones dependen de las preferencias del usuario y sirvió como fundamento para desarrollar posteriormente una aplicación interactiva en la que cada persona pueda establecer la importancia que desea asignar a los indicadores.
+
+
+## 3.6. Herramientas de asistencia y reproducibilidad
+
+Para el análisis de datos y la creación de gráficos y tablas se utilizó el lenguaje de programación R (versión 4.6.1) junto con Quarto. 
+
+Con el fin de corregir errores en el código y aplicar de forma correcta el formato visual que exigen las normas de la American Psychological Association (APA 7) en los paquetes `ggplot2` y `kableExtra`, se utilizó la herramienta ChatGPT (OpenAI, 2026) como asistente técnico de programación. 
+
+Las consultas realizadas a la inteligencia artificial se limitaron únicamente al diseño visual y la edición del código de R.
 
 # 4. Resultados
+
 ## 4.1 Análisis exploratorio de datos
 
 El AED se realizó sobre los valores observados de los ocho indicadores, antes de imputar. Se examinaron la cobertura, las diferencias entre media y mediana, los valores extremos y las asociaciones entre indicadores. El propósito fue identificar limitaciones y compensaciones relevantes para la posterior clasificación de países y territorios mediante TOPSIS.
@@ -216,9 +257,14 @@ Entre las observaciones retenidas, `r n.completos` tienen los ocho indicadores c
 
 ### 4.1.2 Distribuciones y efecto de los valores extremos
 
+**Tabla 1**  
+*Cobertura y tendencia central antes de imputar*
+
 ```{r}
-#| tbl-cap: "Cobertura y tendencia central antes de imputar."
 #| echo: false
+
+library(knitr)
+library(kableExtra)
 
 resumen.aed |>
   transmute(
@@ -231,22 +277,26 @@ resumen.aed |>
     Mediana = formatC(Mediana, format = "f", digits = 2,
                       big.mark = ".", decimal.mark = ",")
   ) |>
-  knitr::kable(
+  kable(
     format = "latex", booktabs = TRUE,
     row.names = FALSE, align = c("l", "r", "r", "r", "r")
   ) |>
-  kableExtra::kable_styling(
+  kable_styling(
     latex_options = "hold_position",
     full_width = FALSE, font_size = 12
   )
 ```
 
-**Unidades:** PM2.5 en microgramos por metro cúbico; homicidios por cada 100.000 habitantes; PIB per cápita en US$ corrientes; desempleo en porcentaje de la fuerza laboral; esperanza de vida y escolaridad en años; costo de vida y alquiler en puntos de índice. Las medias se calculan entre las entidades disponibles, sin ponderar por población.
+*Nota.* Elaboración del grupo a partir de la base de datos integrada original.
+
+**Unidades:** PM2.5 en microgramos por metro cúbico; homicidios por cada 100.000 habitantes; PIB per cápita en US\$ corrientes; desempleo en porcentaje de la fuerza laboral; esperanza de vida y escolaridad en años; costo de vida y alquiler en puntos de índice. Las medias se calculan entre las entidades disponibles, sin ponderar por población.
 
 El PIB per cápita tiene una media de 26.714,82 y una mediana de 13.988,04: el promedio equivale a `r formatC(pib.aed$Media / pib.aed$Mediana, format = "f", digits = 2, decimal.mark = ",")` veces la mediana. En la Figura 1 se observa la concentración de observaciones y la prolongación hacia valores elevados. Esta separación explica por qué la media, por sí sola, no describe la situación de la mayoría de los países; se acompaña de la mediana para interpretar el valor central sin confundirlo con el ingreso de una persona.
 
+**Figura 1**  
+*Distribución del PIB per cápita observado, con media y mediana*
+
 ```{r}
-#| fig-cap: "Distribución del PIB per cápita observado, con media y mediana."
 #| echo: false
 #| fig-width: 6.4
 #| fig-height: 3.1
@@ -268,12 +318,17 @@ ggplot(df.final, aes(x = PIB.per.capita)) +
   scale_x_continuous(
     labels = scales::label_number(big.mark = ".", decimal.mark = ",")
   ) +
-  labs(x = "PIB per cápita (US$ corrientes)",
-       y = "Países y territorios", linetype = NULL,
-       caption= "Nota: Grafico generado por ChatGPT") +
-  theme_minimal(base_size = 12) +
+  labs(
+    x = "PIB per cápita (US$ corrientes)",
+    y = "Países y territorios", 
+    linetype = NULL
+  ) +
+  theme_classic(base_size = 12) + 
   theme(legend.position = "bottom")
 ```
+
+*Nota.* Elaboración del grupo con datos del Banco Mundial.
+
 
 Para identificar posibles valores atípicos se utilizan las cercas de Tukey. Se consideran potencialmente atípicos los valores inferiores al primer cuartil menos 1,5 veces el rango intercuartílico o superiores al tercer cuartil más 1,5 veces dicho rango. El rango intercuartílico corresponde a la diferencia entre el tercer y el primer cuartil; por tanto, no basta con estar fuera del intervalo entre los cuartiles para considerar una observación atípica. En el PIB per cápita, el límite superior es de 90.302,85 dólares estadounidenses. Seis países o territorios superan este valor, entre ellos Bermudas, Luxemburgo e Irlanda. Al omitir temporalmente estas seis observaciones, la media disminuye un 17,3%, lo que evidencia su influencia sobre el promedio. Este cálculo se realiza únicamente como diagnóstico: los valores señalados no se eliminan de la base ni se modifican los rankings, y tampoco se consideran errores únicamente por su magnitud.
 
@@ -333,8 +388,10 @@ rho.costos.alquiler <- correlaciones.aed$Corr[
 
 La Tabla 2 presenta tres relaciones vinculadas con el objetivo del proyecto. Spearman compara el orden de los valores; cada coeficiente se calcula únicamente con los países que poseen ambos indicadores. Por eso se informa el número de pares disponibles y no se supone que todas las correlaciones provengan de la misma muestra.
 
+**Tabla 2**  
+*Asociaciones de Spearman seleccionadas*
+
 ```{r}
-#| tbl-cap: "Asociaciones de Spearman seleccionadas."
 #| echo: false
 
 correlaciones.aed |>
@@ -344,42 +401,23 @@ correlaciones.aed |>
     Spearman = formatC(Corr, format = "f", digits = 3,
                        decimal.mark = ",")
   ) |>
-  knitr::kable(
+  kable(
     format = "latex", booktabs = TRUE, row.names = FALSE,
     col.names = c("Relación", "N", "Spearman"),
     align = c("l", "r", "r")
   ) |>
-  kableExtra::kable_styling(
+  kable_styling(
     latex_options = "hold_position", full_width = FALSE, font_size = 12
   )
 ```
 
+*Nota.* Elaboración del grupo a partir de la base de datos integrada original.
+
+
 El PIB per cápita y la esperanza de vida presentan una correlación de `r formatC(rho.pib.vida, format = "f", digits = 3, decimal.mark = ",")`. En la base enviada, esta asociación positiva indica que los países con mayor PIB tienden a ocupar posiciones más altas en esperanza de vida. No demuestra que el PIB cause por sí solo una mayor longevidad. Para el índice, importa porque dos dimensiones distintas pueden aportar información parcialmente relacionada; sus ponderaciones deben interpretarse conjuntamente.
 
-La asociación entre PIB y costo de vida es de `r formatC(rho.pib.costos, format = "f", digits = 3, decimal.mark = ",")` y se visualiza en la Figura 1. En los resultados del grupo, los países con mayor PIB tienden a presentar mayores índices de costo de vida. Esto muestra una compensación relevante: priorizar un mayor PIB y priorizar menores costos puede favorecer alternativas diferentes. No equivale a medir asequibilidad, porque no se dispone del salario ni del presupuesto particular de cada usuario.
+La asociación entre PIB y costo de vida es de `r formatC(rho.pib.costos, format = "f", digits = 3, decimal.mark = ",")` y se visualiza en la Figura A1 (ver Anexo A). En los resultados del grupo, los países con mayor PIB tienden a presentar mayores índices de costo de vida. Esto muestra una compensación relevante: priorizar un mayor PIB y priorizar menores costos puede favorecer alternativas diferentes. No equivale a medir asequibilidad, porque no se dispone del salario ni del presupuesto particular de cada usuario.
 
-```{r}
-#| fig-cap: "PIB per cápita e índice de costo de vida."
-#| echo: false
-#| fig-width: 6.4
-#| fig-height: 3.1
-#| out-width: 100%
-#| fig-pos: H
-
-datos.pib.costos <- df.final |>
-  filter(!is.na(PIB.per.capita), !is.na(Indice.costo.vida))
-
-ggplot(datos.pib.costos,
-       aes(x = PIB.per.capita, y = Indice.costo.vida)) +
-  geom_point(size = 2, alpha = 0.7) +
-  scale_x_continuous(
-    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
-  ) +
-  labs(x = "PIB per cápita (US$ corrientes)",
-       y = "Índice de costo de vida",
-    caption= "Nota: Grafico generado por ChatGPT") +
-  theme_minimal(base_size = 12)
-```
 
 Finalmente, costo de vida y alquiler presentan una correlación de `r formatC(rho.costos.alquiler, format = "f", digits = 3, decimal.mark = ",")`. En la base analizada, sus patrones son similares, aunque no son conceptos idénticos. Con pesos iguales, ambos criterios reciben conjuntamente el 25% del peso nominal del modelo. Esta asociación no obliga a eliminar uno, pero sí a reconocer que la dimensión de costos está representada por dos criterios relacionados.
 
@@ -387,10 +425,9 @@ Finalmente, costo de vida y alquiler presentan una correlación de `r formatC(rh
 
 El AED identifica tres precauciones para interpretar los rankings: la muestra está condicionada por la disponibilidad de información, los extremos influyen en las medidas de centro y varios criterios se encuentran relacionados. La estandarización utilizada en KNN permite comparar unidades distintas, pero las imputaciones siguen siendo estimaciones. Asimismo, los datos corresponden a distintos años según el indicador; las asociaciones no representan una fotografía estricta de 2024. Estos límites justifican interpretar TOPSIS como una comparación relativa bajo criterios y preferencias explícitos, no como una recomendación universal.
 
-
 ## 4.2 Resultados de la Metodología
 
-### 4.2.1 Escenario TOPSIS con ponderaciones iguales 
+### 4.2.1 Escenario TOPSIS con ponderaciones iguales
 
 ```{r}
 #| message: false
@@ -432,8 +469,13 @@ ranking.equilibrado <- calcular.ranking.topsis(
 )
 
 ```
+
+Los diez países con mejor desempeño relativo bajo este enfoque de pesos idénticos se detallan a continuación en la Tabla 3.
+
+**Tabla 3**  
+*Diez países mejor clasificados con ponderaciones iguales*
+
 ```{r}
-#| tbl-cap: "Diez países mejor clasificados con ponderaciones iguales"
 #| echo: false
 
 ranking.equilibrado |>
@@ -441,7 +483,7 @@ ranking.equilibrado |>
   transmute(
     Posición = Ranking,
     País = Pais,
-    `Puntuación.TOPSIS` = sprintf("%.4f", Puntaje.TOPSIS)
+    `Puntuación TOPSIS` = sprintf("%.4f", Puntaje.TOPSIS)
   ) |>
   kable(
     format = "latex",
@@ -455,8 +497,10 @@ ranking.equilibrado |>
     font_size = 10
   ) |>
   row_spec(1, bold = TRUE)
-
 ```
+
+*Nota.* Elaboración del grupo a partir de la base integrada y los resultados TOPSIS.
+
 
 Como punto de referencia, se aplicó el método TOPSIS asignando un peso de 12,5% a cada uno de los ocho indicadores. Este escenario permite comparar los países sin establecer prioridades entre los criterios y constituye la base para evaluar posteriormente los cambios producidos por diferentes preferencias individuales.
 
@@ -472,11 +516,80 @@ Por otro lado, se optó por analizar los resultados al considerar una mayor pond
 
 Los resultados muestran amplias diferencias entre las clasificaciones. Luxemburgo ocupa la primera posición en el escenario equilibrado, mientras que Islandia encabeza el escenario de bienestar, Bermudas el económico y Pakistán el de costos. Es decir, diferentes preferencias producen distintos resultados, por lo cual evaluar el caso equilibrado puede no reflejar la realidad lo que realmente busca una persona en un país.
 
-Además, algunos países presentan cambios significativos entre las evaluaciones, como se puede apreciar en la Figura 3: Bermudas pasa de la posición 101 en el escenario equilibrado a la primera en economía, pero baja hasta la 123 en costos, resultando en una variación máxima de 122 posiciones. Similarmente, Suiza ocupa la cuarta posición en economía y la séptima en bienestar, pero desciende hasta la 120 cuando se le da más importancia a los costos. También, Pakistán pasa de la posición 115 en el escenario equilibrado a la primera en costos.
+Además, algunos países presentan cambios significativos entre las evaluaciones, como se puede apreciar en la Figura B1 (ver Anexo B):: Bermudas pasa de la posición 101 en el escenario equilibrado a la primera en economía, pero baja hasta la 123 en costos, resultando en una variación máxima de 122 posiciones. Similarmente, Suiza ocupa la cuarta posición en economía y la séptima en bienestar, pero desciende hasta la 120 cuando se le da más importancia a los costos. También, Pakistán pasa de la posición 115 en el escenario equilibrado a la primera en costos.
 
 Esto quiere decir que no existe un país "perfecto" que maximice la satisfacción a cada componente. Es más, los países que maximizan cada variable proceden de distintas regiones del mundo, por lo cual se podría teorizar sobre una posible influencia de la región geográfica de un país con su desempeño en cierto aspecto evaluado. Se puede decir que existen compensaciones entre las condiciones económicas, el bienestar y los costos asociados con vivir en cada país, pues países que sobresalen en ciertas áreas dan pobres resultados en otras.
 
 En conclusión, los resultados respaldan la utilidad del proyecto. Se evidencia que, en lugar de recomendar un mismo país a todos los usuarios, la metodología permite adaptar el orden de las alternativas a los criterios que cada persona considere más importantes.
+
+
+
+
+
+
+\newpage
+
+# Bibliografía
+
+IQAir. (2025). 2024 World Air Quality Report. IQAir.
+
+IQAir — 2024 World Air Quality Report
+
+Numbeo. (2024). Cost of Living Index by Country 2024 \[Conjunto de datos\].
+
+Madanchian, M., & Taherdoost, H. (2023). A comprehensive guide to the TOPSIS method for multi-criteria decision making. Sustainable Social Development, 1(1), Article 2220.
+
+OpenAI. (2026). ChatGPT (GPT-6) \[Modelo de lenguaje grande\].
+
+Our World in Data. (2026). Homicide rate per 100,000 population \[Conjunto de datos\]. Datos de United Nations Office on Drugs and Crime (UNODC), con procesamiento de Our World in Data.
+
+United Nations Development Programme (UNDP). (2025). Human Development Report 2025 \[Conjunto de datos\], con procesamiento menor por Our World in Data.
+
+World Bank. (s. f.). GDP per capita (current US\$) \[Conjunto de datos\]. World Development Indicators. Indicador NY.GDP.PCAP.CD.
+
+World Bank. (s. f.). Unemployment, total (% of total labor force) (modeled ILO estimate) \[Conjunto de datos\]. World Development Indicators. Indicador SL.UEM.TOTL.ZS. Datos de International Labour Organization, ILOSTAT.
+
+World Bank. (s. f.). Life expectancy at birth, total (years) \[Conjunto de datos\]. World Development Indicators. Indicador SP.DYN.LE00.IN.
+
+\newpage
+
+# Anexos
+
+## Anexo A: Análisis de Dispersión entre Ingresos y Costo de Vida
+
+**Figura A1**  
+*PIB per cápita e índice de costo de vida*
+
+```{r}
+#| echo: false
+#| fig-width: 6.4
+#| fig-height: 3.1
+#| out-width: 100%
+#| fig-pos: H
+
+datos.pib.costos <- df.final |>
+  filter(!is.na(PIB.per.capita), !is.na(Indice.costo.vida))
+
+ggplot(datos.pib.costos,
+       aes(x = PIB.per.capita, y = Indice.costo.vida)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_x_continuous(
+    labels = scales::label_number(big.mark = ".", decimal.mark = ",")
+  ) +
+  labs(
+    x = "PIB per cápita (US$ corrientes)",
+    y = "Índice de costo de vida"
+  ) +
+  theme_classic(base_size = 12) 
+```
+
+*Nota.* Relación entre el ingreso por habitante y el nivel de precios para el conjunto de países analizados. Elaboración del grupo con datos del Banco Mundial y Numbeo / IQAir.
+
+
+
+
+
+## Anexo B: Análisis de Posiciones bajo Diferentes Ponderaciones
 
 ```{r}
 # Direcciones de los indicadores
@@ -538,6 +651,7 @@ caso.prioriza.costos <- calcular.ranking.topsis(
 # Mostrar los 10 primeros países de cada escenario
 
 ```
+
 ```{r}
 tabla.comparativa <- ranking.equilibrado |>
   select(Pais, Equilibrado = Ranking) |>
@@ -571,42 +685,17 @@ tabla.comparativa <- tabla.comparativa |>
 
 
 ```
+
+
+**Figura B1**  
+*Cambios de la posición de seis países mediante TOPSIS según las preferencias*
 ```{r}
-#| tbl-cap: "Posiciones de los diez primeros países bajo diferentes escenarios"
-#| echo: false
-
-
-tabla.comparativa |>
-  arrange(Equilibrado) |>
-  slice_head(n = 10) |>
-  select(
-    Pais, Equilibrado, Bienestar,
-    Economia, Costos, Variacion
-  ) |>
-  kable(
-    format = "latex",
-    booktabs = TRUE,
-    col.names = c(
-      "País", "Equilibrado", "Bienestar",
-      "Economía", "Costos", "Variación"
-    ),
-    align = c("l", "c", "c", "c", "c", "c")
-  ) |>
-  kable_styling(
-    latex_options = c("striped", "hold_position"),
-    full_width = FALSE,
-    font_size = 9
-  )
-
-```
-
-```{r}
-#| fig-cap: "Cambios de la posición de seis países mediante TOPSIS según las preferencias"
 #| echo: false
 #| fig-width: 6.4
 #| fig-height: 3.1
 #| out-width: 100%
 #| fig-pos: H
+
 
 paises <- c(
   "Luxembourg", "Iceland", "Bermuda",
@@ -638,40 +727,55 @@ ggplot(datos.grafico,
   labs(
     x = "Escenario",
     y = "Posición en el ranking",
-    color = "País",
-    caption= "Nota: Grafico generado por ChatGPT"
+    color = NULL # APA 7 elimina el título de la leyenda si es evidente
   ) +
-  theme_minimal()
-
+  theme_classic() + # Fondo blanco y ejes limpios estilo APA
+  theme(
+    legend.position = "right",
+    text = element_text(family = "sans", size = 10)
+  )
 ```
 
-# Bibliografía 
-
-IQAir. (2025). 2024 World Air Quality Report. IQAir.
-
-IQAir — 2024 World Air Quality Report
-
-Numbeo. (2024). Cost of Living Index by Country 2024 [Conjunto de datos].
-
-Madanchian, M., & Taherdoost, H. (2023). A comprehensive guide to the TOPSIS method for multi-criteria decision making. Sustainable Social Development, 1(1), Article 2220. 
-
-OpenAI. (2026). ChatGPT (GPT-6) [Modelo de lenguaje grande].
-
-Our World in Data. (2026). Homicide rate per 100,000 population [Conjunto de datos]. Datos de United Nations Office on Drugs and Crime (UNODC), con procesamiento de Our World in Data.
-
-United Nations Development Programme (UNDP). (2025). Human Development Report 2025 [Conjunto de datos], con procesamiento menor por Our World in Data.
-
-World Bank. (s. f.). GDP per capita (current US$) [Conjunto de datos]. World Development Indicators. Indicador NY.GDP.PCAP.CD.
-
-World Bank. (s. f.). Unemployment, total (% of total labor force) (modeled ILO estimate) [Conjunto de datos]. World Development Indicators. Indicador SL.UEM.TOTL.ZS. Datos de International Labour Organization, ILOSTAT.
+*Nota.* Elaboración del grupo a partir de la base integrada y los resultados TOPSIS bajo escenarios de sensibilidad.
 
 
-World Bank. (s. f.). Life expectancy at birth, total (years) [Conjunto de datos]. World Development Indicators. Indicador SP.DYN.LE00.IN.
+**Tabla B1**  
+*Posiciones de los diez primeros países bajo diferentes escenarios*
+```{r}
+#| echo: false
+
+tabla.comparativa |>
+  arrange(Equilibrado) |>
+  slice_head(n = 10) |>
+  select(
+    Pais, Equilibrado, Bienestar,
+    Economia, Costos, Variacion
+  ) |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    col.names = c(
+      "País", "Equilibrado", "Bienestar",
+      "Economía", "Costos", "Variación"
+    ),
+    align = c("l", "c", "c", "c", "c", "c")
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    full_width = FALSE,
+    font_size = 9
+  )
+```
 
 
-
-# Anexos 
-
-Link del repositorio: https://github.com/AndresF-Torres/Proyecto-Herramientas-g6.git
+*Nota.* Rangos obtenidos mediante la aplicación del modelo TOPSIS, donde la columna Variación indica el cambio neto absoluto entre los escenarios extremos. Elaboración del grupo a partir de la base integrada y los resultados TOPSIS bajo escenarios de sensibilidad.
 
 
+\newpage
+## Anexo C: Repositorio del Proyecto y Código Fuente
+
+El código fuente completo en lenguaje R, los scripts de integración de datos (`crea.df.completo.R`), el algoritmo de imputación por vecinos más cercanos (`Imputar.KNN.R`), y la función de cálculo del modelo (`Funcion_topsis.R`), se encuentran alojados en el repositorio público de GitHub para su auditoría y replicabilidad.
+
+**Enlace de acceso:** <https://github.com/AndresF-Torres/Proyecto-Herramientas-g6.git>
+
+*Nota.* El repositorio incluye los conjuntos de datos en formato `.csv` y `.xlsx` utilizados, así como un archivo `README.md` que detalla los ocho indicadores socioeconómicos, ambientales y de bienestar evaluados en este estudio.
