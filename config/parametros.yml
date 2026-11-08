@@ -1,0 +1,21 @@
+knn:
+  vecinos: 5
+  min_comunes: 3
+excluir_desde_na: 3
+pesos:
+  Equilibrado:
+    PM25: 0.125
+    Tasa.homicidios: 0.125
+    PIB.per.capita: 0.125
+    Desempleo: 0.125
+    Esperanza.de.vida: 0.125
+    Anios.escolaridad: 0.125
+    Indice.costo.vida: 0.125
+    Indice.alquiler: 0.125
+  Bienestar:
+    PM25: 0.25
+    Tasa.homicidios: 0.25
+    Esperanza.de.vida: 0.25
+    Anios.escolaridad: 0.25
+  Economia: {PIB.per.capita: 0.5, Desempleo: 0.5}
+  Costos: {Indice.costo.vida: 0.5, Indice.alquiler: 0.5}
