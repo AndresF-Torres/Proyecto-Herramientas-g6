@@ -255,10 +255,9 @@ La base integrada contiene `r n.original` países y territorios. El código del 
 
 Entre las observaciones retenidas, `r n.completos` tienen los ocho indicadores completos y `r n.incompletos` presentan al menos un faltante. En conjunto quedan `r sum(resumen.aed$Faltantes)` celdas sin información. La Tabla 1 permite localizar esos faltantes. La cobertura elevada expresa disponibilidad, no precisión: no garantiza actualidad, comparabilidad temporal ni ausencia de errores. Además, está condicionada por la exclusión previa de los países con menor información.
 
-### 4.1.2 Distribuciones y efecto de los valores extremos
-
 **Tabla 1**  
 *Cobertura y tendencia central antes de imputar*
+
 
 ```{r}
 #| echo: false
@@ -287,7 +286,11 @@ resumen.aed |>
   )
 ```
 
+
+
 *Nota.* Elaboración del grupo a partir de la base de datos integrada original.
+
+### 4.1.2 Distribuciones y efecto de los valores extremos
 
 **Unidades:** PM2.5 en microgramos por metro cúbico; homicidios por cada 100.000 habitantes; PIB per cápita en US\$ corrientes; desempleo en porcentaje de la fuerza laboral; esperanza de vida y escolaridad en años; costo de vida y alquiler en puntos de índice. Las medias se calculan entre las entidades disponibles, sin ponderar por población.
 
